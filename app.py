@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 from src.ai_grader import AIGraderError, grade_essay
 from src.error_book import append_error_book
-from src.storage import list_correction_history, save_markdown_record
+from src.storage import save_markdown_record
 from src.text_utils import count_words, word_count_warning
 
 
@@ -223,6 +223,33 @@ def extract_overall_score(markdown: str) -> float | None:
         return None
 
     return float(match.group(1))
+
+
+def list_correction_history() -> list[dict[str, object]]:
+    """Read saved records for the dashboard trend chart."""
+    records_dir = BASE_DIR / "records"
+    if not records_dir.exists():
+        return []
+
+    history: list[dict[str, object]] = []
+    for path in sorted(records_dir.glob("ielts_*.md")):
+        markdown = path.read_text(encoding="utf-8")
+        created_match = re.search(r"- Created At:\s*(.+)", markdown)
+        task_match = re.search(r"- Task Type:\s*(.+)", markdown)
+        words_match = re.search(r"- Word Count:\s*(\d+)", markdown)
+
+        history.append(
+            {
+                "file": path.name,
+                "path": path,
+                "created_at": created_match.group(1) if created_match else path.stem,
+                "task_type": task_match.group(1) if task_match else "Unknown",
+                "word_count": int(words_match.group(1)) if words_match else None,
+                "score": extract_overall_score(markdown),
+            }
+        )
+
+    return history
 
 
 def render_history() -> None:
