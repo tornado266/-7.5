@@ -1,13 +1,14 @@
 # IELTS Writing Correction Skill
 
 This is a beginner-friendly IELTS Writing correction project.
+It supports DeepSeek by default and can also use OpenAI.
 
 It works like a simple "Skill":
 
 1. You enter an IELTS Writing question.
 2. You paste your essay.
 3. You choose Task 1 or Task 2.
-4. The app uses the OpenAI API to grade and rewrite the essay.
+4. The app uses an AI API to grade and rewrite the essay.
 5. Each correction is saved as a local Markdown file.
 
 ## What The App Can Do
@@ -46,7 +47,7 @@ The Streamlit web app. This file creates the page, text boxes, button, and resul
 
 `src/ai_grader.py`
 
-This file calls the OpenAI API.
+This file calls the AI API.
 
 `src/prompts.py`
 
@@ -90,24 +91,25 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Set your OpenAI API key
+### 4. Set your DeepSeek API key
 
 Windows PowerShell:
 
 ```bash
-$env:OPENAI_API_KEY="your_api_key_here"
+$env:DEEPSEEK_API_KEY="your_deepseek_api_key_here"
 ```
 
 macOS or Linux:
 
 ```bash
-export OPENAI_API_KEY="your_api_key_here"
+export DEEPSEEK_API_KEY="your_deepseek_api_key_here"
 ```
 
 You can also copy `.env.example` to `.env` and put your API key there:
 
 ```text
-OPENAI_API_KEY=your_api_key_here
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
+DEEPSEEK_BASE_URL=https://api.deepseek.com
 ```
 
 ### 5. Run the app
@@ -146,12 +148,13 @@ The most important idea is separation of responsibilities:
 
 - The web page collects user input.
 - The prompt explains the IELTS correction task.
-- The API module talks to OpenAI.
+- The API module talks to DeepSeek or OpenAI.
 - The storage module saves the result.
 
-## Notes About The OpenAI API
+## Notes About The AI API
 
-This project uses the OpenAI Responses API through the official Python SDK.
+This project uses the official OpenAI Python SDK because DeepSeek provides an OpenAI-compatible API.
+The default DeepSeek model is `deepseek-chat`.
 The model name is editable in the sidebar. If a model is not available in your account, replace it with another text model you can access.
 
 ## Possible Future Improvements

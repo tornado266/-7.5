@@ -28,13 +28,15 @@ def show_markdown_file(path: Path) -> None:
 
 
 st.title("IELTS Writing Correction Skill")
-st.caption("A beginner-friendly IELTS essay checker powered by Python, Streamlit, and OpenAI.")
+st.caption("A beginner-friendly IELTS essay checker powered by Python, Streamlit, and AI APIs.")
 
 with st.sidebar:
     st.header("Settings")
     task_type = st.radio("IELTS task type", ["Task 2", "Task 1"], horizontal=True)
-    model = st.text_input("OpenAI model", value="gpt-4.1-mini")
-    st.info("Set your OPENAI_API_KEY before running the app.")
+    provider = st.selectbox("AI provider", ["DeepSeek", "OpenAI"])
+    default_model = "deepseek-chat" if provider == "DeepSeek" else "gpt-4.1-mini"
+    model = st.text_input("Model", value=default_model)
+    st.info("For DeepSeek, set DEEPSEEK_API_KEY. For OpenAI, set OPENAI_API_KEY.")
 
 topic = st.text_area(
     "Essay question",
@@ -57,6 +59,7 @@ if submitted:
         with st.spinner("The IELTS Skill is reading, scoring, and rewriting your essay..."):
             try:
                 report = grade_essay(
+                    provider=provider,
                     task_type=task_type,
                     topic=topic,
                     essay=essay,
