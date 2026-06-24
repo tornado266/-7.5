@@ -110,6 +110,8 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
+Run the activation command from the project root.
+
 If PowerShell blocks activation, run this once:
 
 ```powershell

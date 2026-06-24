@@ -1,4 +1,4 @@
-"""Prompt templates for IELTS Writing examiner reports."""
+"""IELTS Writing examiner prompt templates."""
 
 
 def build_grading_prompt(task_type: str, topic: str, essay: str) -> str:

@@ -1,4 +1,4 @@
-"""AI provider client and IELTS grading call."""
+"""AI provider client and IELTS grading request."""
 
 import os
 

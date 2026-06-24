@@ -1,4 +1,4 @@
-"""Local Markdown storage for IELTS correction records."""
+"""Markdown storage helpers for IELTS correction records."""
 
 from datetime import datetime
 from pathlib import Path
