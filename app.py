@@ -6,7 +6,7 @@ from pathlib import Path
 import streamlit as st
 from dotenv import load_dotenv
 
-from src.ai_grader import grade_essay
+from src.ai_grader import AIGraderError, grade_essay
 from src.error_book import append_error_book
 from src.storage import save_markdown_record
 from src.text_utils import count_words, word_count_warning
@@ -247,8 +247,15 @@ if submitted:
                     topic=topic,
                     report=report,
                 )
+            except AIGraderError as exc:
+                st.error("The AI request failed. Full diagnostic details are below.")
+                st.code(str(exc), language="text")
             except Exception as exc:
-                st.error(f"Something went wrong: {exc}")
+                st.error("Unexpected app error. Full diagnostic details are below.")
+                st.code(
+                    f"Exception Type: {type(exc).__name__}\n\n{type(exc).__name__}:\n{exc}",
+                    language="text",
+                )
             else:
                 st.success("Correction complete.")
 
