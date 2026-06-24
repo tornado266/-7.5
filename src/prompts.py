@@ -1,3 +1,6 @@
+"""Prompt templates for IELTS Writing examiner reports."""
+
+
 def build_grading_prompt(task_type: str, topic: str, essay: str) -> str:
     """Build the prompt used by the IELTS correction Skill."""
     if task_type == "Task 1":

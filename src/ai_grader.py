@@ -1,3 +1,5 @@
+"""AI provider client and IELTS grading call."""
+
 import os
 
 from openai import OpenAI

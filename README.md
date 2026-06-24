@@ -1,5 +1,7 @@
 # IELTS Writing Correction Skill
 
+Portfolio-ready IELTS Writing correction app built with Python, Streamlit, and AI APIs.
+
 This is a beginner-friendly IELTS Writing correction project.
 It supports DeepSeek by default and can also use OpenAI.
 

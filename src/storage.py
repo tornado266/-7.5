@@ -1,3 +1,5 @@
+"""Local Markdown storage for IELTS correction records."""
+
 from datetime import datetime
 from pathlib import Path
 from textwrap import dedent

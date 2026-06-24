@@ -1,3 +1,5 @@
+"""Streamlit UI for the IELTS Writing Correction Skill."""
+
 import base64
 from pathlib import Path
 
