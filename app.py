@@ -168,6 +168,19 @@ with st.sidebar:
     default_model = "deepseek-chat" if provider == "DeepSeek" else "gpt-4.1-mini"
     model = st.text_input("Model", value=default_model)
     st.info("For DeepSeek, set DEEPSEEK_API_KEY. For OpenAI, set OPENAI_API_KEY.")
+    with st.expander("Examiner report includes", expanded=False):
+        st.markdown(
+            """
+            1. Overall Band Score
+            2. Four Criteria Scores
+            3. Main Problems
+            4. Sentence-level Corrections
+            5. Paragraph-level Feedback
+            6. Band 7.5 Rewrite
+            7. Useful Expressions
+            8. Next Practice Task
+            """
+        )
 
 topic = st.text_area(
     "Essay question",
