@@ -1,3 +1,4 @@
+import base64
 from pathlib import Path
 
 import streamlit as st
@@ -9,11 +10,141 @@ from src.storage import save_markdown_record
 
 load_dotenv()
 
+BASE_DIR = Path(__file__).parent
+BACKGROUND_IMAGE = BASE_DIR / "assets" / "hawaii-background.png"
+
+
+def image_to_base64(path: Path) -> str:
+    """Convert a local image to base64 so Streamlit can use it in CSS."""
+    return base64.b64encode(path.read_bytes()).decode("utf-8")
+
+
+def inject_page_style() -> None:
+    """Add a bright tropical visual style to the Streamlit page."""
+    background = image_to_base64(BACKGROUND_IMAGE)
+    st.markdown(
+        f"""
+        <style>
+        [data-testid="stAppViewContainer"] {{
+            background:
+                linear-gradient(120deg, rgba(255, 255, 255, 0.78), rgba(236, 252, 255, 0.62)),
+                url("data:image/png;base64,{background}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+
+        [data-testid="stHeader"] {{
+            background: transparent;
+        }}
+
+        [data-testid="stSidebar"] > div:first-child {{
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(223, 250, 255, 0.78));
+            backdrop-filter: blur(18px);
+            border-right: 1px solid rgba(255, 255, 255, 0.55);
+        }}
+
+        [data-testid="stSidebar"] * {{
+            color: #12343b;
+        }}
+
+        .block-container {{
+            max-width: 1120px;
+            padding-top: 2.6rem;
+            padding-bottom: 3rem;
+            background: rgba(255, 255, 255, 0.38);
+            border: 1px solid rgba(255, 255, 255, 0.54);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }}
+
+        h1 {{
+            color: #064e5a;
+            font-weight: 800;
+            letter-spacing: 0;
+        }}
+
+        .stCaption, p, label, span {{
+            color: #134e5e;
+        }}
+
+        [data-baseweb="select"] > div {{
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(14, 116, 144, 0.24);
+            border-radius: 8px;
+            color: #12343b;
+            box-shadow: 0 12px 24px rgba(8, 51, 68, 0.08);
+        }}
+
+        [data-baseweb="select"] svg {{
+            color: #0e7490;
+        }}
+
+        [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] {{
+            gap: 1rem;
+        }}
+
+        div[data-testid="stTextArea"] textarea,
+        div[data-testid="stTextInput"] input {{
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(14, 116, 144, 0.22);
+            border-radius: 8px;
+            color: #12343b;
+            box-shadow: 0 14px 30px rgba(8, 51, 68, 0.08);
+        }}
+
+        div[data-testid="stTextArea"] textarea::placeholder,
+        div[data-testid="stTextInput"] input::placeholder {{
+            color: #6b8790;
+            opacity: 1;
+        }}
+
+        div[data-testid="stTextArea"] textarea:focus,
+        div[data-testid="stTextInput"] input:focus {{
+            border-color: #0e9f9a;
+            box-shadow: 0 0 0 1px #0e9f9a, 0 16px 34px rgba(8, 51, 68, 0.1);
+        }}
+
+        div.stButton > button:first-child {{
+            background: linear-gradient(135deg, #ff7f6e, #ffb86b);
+            color: #ffffff;
+            border: 0;
+            border-radius: 8px;
+            min-height: 3rem;
+            font-weight: 700;
+            box-shadow: 0 16px 26px rgba(255, 127, 110, 0.32);
+        }}
+
+        div.stButton > button:first-child:hover {{
+            color: #ffffff;
+            border: 0;
+            transform: translateY(-1px);
+            box-shadow: 0 20px 32px rgba(255, 127, 110, 0.38);
+        }}
+
+        [data-testid="stMarkdownContainer"] table {{
+            background: rgba(255, 255, 255, 0.88);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 16px 30px rgba(8, 51, 68, 0.08);
+        }}
+
+        [data-testid="stAlert"] {{
+            border-radius: 8px;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 st.set_page_config(
     page_title="IELTS Writing Skill",
     page_icon=":memo:",
     layout="wide",
 )
+
+inject_page_style()
 
 
 def show_markdown_file(path: Path) -> None:
