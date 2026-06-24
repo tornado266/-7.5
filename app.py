@@ -3,12 +3,13 @@
 import base64
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 from dotenv import load_dotenv
 
 from src.ai_grader import AIGraderError, grade_essay
 from src.error_book import append_error_book
-from src.storage import save_markdown_record
+from src.storage import extract_overall_score, list_correction_history, save_markdown_record
 from src.text_utils import count_words, word_count_warning
 
 
@@ -24,14 +25,14 @@ def image_to_base64(path: Path) -> str:
 
 
 def inject_page_style() -> None:
-    """Add a bright tropical visual style to the Streamlit page."""
+    """Add a calm ChatGPT/Claude/Notion-inspired visual style."""
     background = image_to_base64(BACKGROUND_IMAGE)
     st.markdown(
         f"""
         <style>
         [data-testid="stAppViewContainer"] {{
             background:
-                linear-gradient(120deg, rgba(255, 255, 255, 0.78), rgba(236, 252, 255, 0.62)),
+                linear-gradient(120deg, rgba(255, 255, 255, 0.86), rgba(244, 247, 246, 0.78)),
                 url("data:image/png;base64,{background}");
             background-size: cover;
             background-position: center;
@@ -58,23 +59,28 @@ def inject_page_style() -> None:
         }}
 
         .block-container {{
-            max-width: 1120px;
-            padding-top: 2.6rem;
+            max-width: 1240px;
+            padding-top: 2.2rem;
             padding-bottom: 3rem;
-            background: rgba(255, 255, 255, 0.38);
+            background: rgba(255, 255, 255, 0.54);
             border: 1px solid rgba(255, 255, 255, 0.54);
             border-radius: 8px;
             backdrop-filter: blur(10px);
         }}
 
         h1 {{
-            color: #064e5a;
+            color: #16323a;
             font-weight: 800;
             letter-spacing: 0;
         }}
 
-        .stCaption, p, label, span {{
-            color: #134e5e;
+        h2, h3 {{
+            color: #1d3f46;
+            letter-spacing: 0;
+        }}
+
+        .stCaption, p, label, span, li {{
+            color: #26474f;
         }}
 
         [data-baseweb="select"] > div {{
@@ -115,20 +121,47 @@ def inject_page_style() -> None:
         }}
 
         div.stButton > button:first-child {{
-            background: linear-gradient(135deg, #ff7f6e, #ffb86b);
+            background: #1f6f78;
             color: #ffffff;
             border: 0;
             border-radius: 8px;
             min-height: 3rem;
             font-weight: 700;
-            box-shadow: 0 16px 26px rgba(255, 127, 110, 0.32);
+            box-shadow: 0 16px 26px rgba(31, 111, 120, 0.25);
         }}
 
         div.stButton > button:first-child:hover {{
             color: #ffffff;
             border: 0;
             transform: translateY(-1px);
-            box-shadow: 0 20px 32px rgba(255, 127, 110, 0.38);
+            box-shadow: 0 20px 32px rgba(31, 111, 120, 0.32);
+        }}
+
+        .score-card {{
+            padding: 1rem;
+            border: 1px solid rgba(31, 111, 120, 0.16);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.86);
+            box-shadow: 0 14px 28px rgba(8, 51, 68, 0.08);
+        }}
+
+        .score-label {{
+            color: #5f7378;
+            font-size: 0.82rem;
+            margin-bottom: 0.2rem;
+        }}
+
+        .score-value {{
+            color: #16323a;
+            font-size: 1.75rem;
+            font-weight: 800;
+        }}
+
+        .workspace-note {{
+            padding: 1rem;
+            border: 1px solid rgba(31, 111, 120, 0.14);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.74);
         }}
 
         [data-testid="stMarkdownContainer"] table {{
@@ -167,11 +200,42 @@ def show_markdown_file(path: Path) -> None:
         )
 
 
+def render_score_card(label: str, value: str, note: str = "") -> None:
+    """Render a compact portfolio-style score card."""
+    st.markdown(
+        f"""
+        <div class="score-card">
+            <div class="score-label">{label}</div>
+            <div class="score-value">{value}</div>
+            <div class="score-label">{note}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_history() -> None:
+    """Render local score history and trend chart."""
+    history = list_correction_history()
+    scored_history = [item for item in history if item["score"] is not None]
+
+    st.subheader("History Trend")
+    if not scored_history:
+        st.info("No scored history yet. Complete a correction to build your trend chart.")
+        return
+
+    chart_data = pd.DataFrame(
+        {
+            "Practice": [item["created_at"] for item in scored_history[-10:]],
+            "Band Score": [item["score"] for item in scored_history[-10:]],
+        }
+    )
+    st.line_chart(chart_data, x="Practice", y="Band Score")
+    st.caption("Showing the latest 10 saved correction records with extractable scores.")
+
+
 st.title("IELTS Writing Correction Skill")
-st.caption(
-    "A beginner-friendly IELTS essay checker powered by Python, "
-    "Streamlit, and AI APIs."
-)
+st.caption("A calm AI writing desk for IELTS feedback, revision, and progress tracking.")
 
 with st.sidebar:
     st.header("Settings")
@@ -196,77 +260,125 @@ with st.sidebar:
             """
         )
 
-topic = st.text_area(
-    "Essay question",
-    height=120,
-    placeholder="Paste the IELTS Writing question here.",
-)
+input_col, result_col = st.columns([0.92, 1.28], gap="large")
 
-essay = st.text_area(
-    "Your essay",
-    height=320,
-    placeholder="Paste your full essay here.",
-)
+with input_col:
+    st.subheader("Writing Input")
+    topic = st.text_area(
+        "Essay question",
+        height=120,
+        placeholder="Paste the IELTS Writing question here.",
+    )
 
-word_count = count_words(essay)
-minimum_words = 150 if task_type == "Task 1" else 250
-count_label = f"Word count: {word_count} / {minimum_words}+"
-if essay.strip():
-    warning = word_count_warning(task_type, word_count)
-    if warning:
-        st.warning(warning)
+    essay = st.text_area(
+        "Your essay",
+        height=360,
+        placeholder="Paste your full essay here.",
+    )
+
+    word_count = count_words(essay)
+    minimum_words = 150 if task_type == "Task 1" else 250
+    count_label = f"Word count: {word_count} / {minimum_words}+"
+
+    metric_a, metric_b = st.columns(2)
+    with metric_a:
+        render_score_card("Words", str(word_count), f"{task_type} target: {minimum_words}+")
+    with metric_b:
+        render_score_card("Provider", provider, model)
+
+    if essay.strip():
+        warning = word_count_warning(task_type, word_count)
+        if warning:
+            st.warning(warning)
+        else:
+            st.success(count_label)
     else:
-        st.success(count_label)
-else:
-    st.caption(count_label)
+        st.markdown(
+            """
+            <div class="workspace-note">
+                Paste a question and essay, then run the examiner report.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-submitted = st.button("Grade My Essay", type="primary")
+    submitted = st.button("Grade My Essay", type="primary", use_container_width=True)
 
-if submitted:
-    if not topic.strip() or not essay.strip():
-        st.error("Please enter both the essay question and your essay.")
+with result_col:
+    st.subheader("Examiner Workspace")
+    if "latest_report" not in st.session_state:
+        st.session_state.latest_report = ""
+        st.session_state.latest_saved_path = None
+        st.session_state.latest_error_book_path = None
+
+    if submitted:
+        if not topic.strip() or not essay.strip():
+            st.error("Please enter both the essay question and your essay.")
+        else:
+            with st.spinner("The examiner is scoring, diagnosing, and rewriting..."):
+                try:
+                    report = grade_essay(
+                        provider=provider,
+                        task_type=task_type,
+                        topic=topic,
+                        essay=essay,
+                        model=model,
+                    )
+                    saved_path = save_markdown_record(
+                        task_type=task_type,
+                        topic=topic,
+                        essay=essay,
+                        report=report,
+                        word_count=word_count,
+                    )
+                    error_book_path = append_error_book(
+                        task_type=task_type,
+                        topic=topic,
+                        report=report,
+                    )
+                    st.session_state.latest_report = report
+                    st.session_state.latest_saved_path = saved_path
+                    st.session_state.latest_error_book_path = error_book_path
+                except AIGraderError as exc:
+                    st.error("The AI request failed. Full diagnostic details are below.")
+                    st.code(str(exc), language="text")
+                except Exception as exc:
+                    st.error("Unexpected app error. Full diagnostic details are below.")
+                    st.code(
+                        f"Exception Type: {type(exc).__name__}\n\n"
+                        f"{type(exc).__name__}:\n{exc}",
+                        language="text",
+                    )
+
+    if st.session_state.latest_report:
+        score = extract_overall_score(st.session_state.latest_report)
+        score_text = f"{score:.1f}" if score is not None else "Pending"
+        card_one, card_two, card_three = st.columns(3)
+        with card_one:
+            render_score_card("Overall", score_text, "estimated band")
+        with card_two:
+            render_score_card("Task", task_type, "IELTS mode")
+        with card_three:
+            render_score_card("Words", str(word_count), "current essay")
+
+        tab_report, tab_files = st.tabs(["Report", "Saved Files"])
+        with tab_report:
+            st.markdown(st.session_state.latest_report)
+        with tab_files:
+            if st.session_state.latest_saved_path:
+                st.write(str(st.session_state.latest_saved_path))
+                show_markdown_file(st.session_state.latest_saved_path)
+            if st.session_state.latest_error_book_path:
+                st.write(str(st.session_state.latest_error_book_path))
     else:
-        with st.spinner("The IELTS Skill is reading, scoring, and rewriting your essay..."):
-            try:
-                report = grade_essay(
-                    provider=provider,
-                    task_type=task_type,
-                    topic=topic,
-                    essay=essay,
-                    model=model,
-                )
-                saved_path = save_markdown_record(
-                    task_type=task_type,
-                    topic=topic,
-                    essay=essay,
-                    report=report,
-                    word_count=word_count,
-                )
-                error_book_path = append_error_book(
-                    task_type=task_type,
-                    topic=topic,
-                    report=report,
-                )
-            except AIGraderError as exc:
-                st.error("The AI request failed. Full diagnostic details are below.")
-                st.code(str(exc), language="text")
-            except Exception as exc:
-                st.error("Unexpected app error. Full diagnostic details are below.")
-                st.code(
-                    f"Exception Type: {type(exc).__name__}\n\n{type(exc).__name__}:\n{exc}",
-                    language="text",
-                )
-            else:
-                st.success("Correction complete.")
+        st.markdown(
+            """
+            <div class="workspace-note">
+                Your score cards and examiner report will appear here after grading.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-                left, right = st.columns([2, 1])
-
-                with left:
-                    st.markdown(report)
-
-                with right:
-                    st.subheader("Saved Record")
-                    st.write(str(saved_path))
-                    show_markdown_file(saved_path)
-                    st.subheader("Error Book")
-                    st.write(str(error_book_path))
+st.divider()
+render_history()
