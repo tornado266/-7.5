@@ -1,8 +1,8 @@
 """Streamlit app entry point for the IELTS Writing Correction Skill."""
 
 import base64
-import re
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import streamlit as st
@@ -10,7 +10,12 @@ from dotenv import load_dotenv
 
 from src.ai_grader import AIGraderError, grade_essay, test_deepseek_connection
 from src.error_book import append_error_book
-from src.storage import save_markdown_record
+from src.result_parser import (
+    CRITERIA_LABELS,
+    parse_examiner_report,
+    structured_report_to_markdown,
+)
+from src.storage import list_correction_history, save_markdown_record
 from src.text_utils import count_words, word_count_warning
 
 
@@ -18,7 +23,6 @@ BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
 
 BACKGROUND_IMAGE = BASE_DIR / "assets" / "hawaii-background.png"
-SCORE_PATTERN = re.compile(r"(?:Likely Score|Overall Band|likely score)[^\d]*(\d(?:\.\d)?)")
 
 
 def image_to_base64(path: Path) -> str:
@@ -183,7 +187,7 @@ def inject_page_style() -> None:
 
 
 st.set_page_config(
-    page_title="IELTS Writing Skill",
+    page_title="IELTS Writing AI Examiner",
     page_icon=":memo:",
     layout="wide",
 )
@@ -216,40 +220,87 @@ def render_score_card(label: str, value: str, note: str = "") -> None:
     )
 
 
-def extract_overall_score(markdown: str) -> float | None:
-    """Extract the likely overall band score from the latest report text."""
-    match = SCORE_PATTERN.search(markdown)
-    if not match:
-        return None
+def render_criteria_cards(criteria_scores: dict[str, Any]) -> None:
+    """Render four IELTS criteria score cards."""
+    columns = st.columns(4)
+    for index, (key, label) in enumerate(CRITERIA_LABELS.items()):
+        score = criteria_scores.get(key)
+        value = f"{score:.1f}" if isinstance(score, (int, float)) else "N/A"
+        with columns[index]:
+            render_score_card(label, value, "criterion band")
 
-    return float(match.group(1))
+
+def render_problem_list(items: list[dict[str, Any]]) -> None:
+    for index, item in enumerate(items, start=1):
+        st.markdown(f"**{index}. {item.get('problem', 'Problem')}**")
+        st.caption(f"Original: {item.get('original_sentence', '')}")
+        st.write(item.get("suggestion", ""))
 
 
-def list_correction_history() -> list[dict[str, object]]:
-    """Read saved records for the dashboard trend chart."""
-    records_dir = BASE_DIR / "records"
-    if not records_dir.exists():
-        return []
+def render_sentence_corrections(items: list[dict[str, Any]]) -> None:
+    if not items:
+        st.info("No sentence-level corrections were returned.")
+        return
 
-    history: list[dict[str, object]] = []
-    for path in sorted(records_dir.glob("ielts_*.md")):
-        markdown = path.read_text(encoding="utf-8")
-        created_match = re.search(r"- Created At:\s*(.+)", markdown)
-        task_match = re.search(r"- Task Type:\s*(.+)", markdown)
-        words_match = re.search(r"- Word Count:\s*(\d+)", markdown)
+    rows = [
+        {
+            "Original": item.get("original", ""),
+            "Corrected": item.get("corrected", ""),
+            "Reason": item.get("reason", ""),
+        }
+        for item in items
+        if isinstance(item, dict)
+    ]
+    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
-        history.append(
-            {
-                "file": path.name,
-                "path": path,
-                "created_at": created_match.group(1) if created_match else path.stem,
-                "task_type": task_match.group(1) if task_match else "Unknown",
-                "word_count": int(words_match.group(1)) if words_match else None,
-                "score": extract_overall_score(markdown),
-            }
-        )
 
-    return history
+def render_structured_report(parsed_report: dict[str, Any]) -> None:
+    """Render parsed examiner feedback in clear product sections."""
+    if not parsed_report.get("ok"):
+        st.warning("Structured parsing failed, showing raw examiner report.")
+        with st.expander("Raw Report fallback", expanded=True):
+            st.text(parsed_report.get("raw", ""))
+        return
+
+    data = parsed_report.get("data", {})
+    overall = data.get("overall_band")
+    overall_text = f"{overall:.1f}" if isinstance(overall, (int, float)) else "N/A"
+
+    st.markdown("### Score Summary")
+    render_score_card("Overall Band Score", overall_text, "estimated IELTS Task 2 band")
+
+    st.markdown("### Criteria Breakdown")
+    render_criteria_cards(data.get("criteria_scores", {}) or {})
+
+    explanations = data.get("score_explanation", {}) or {}
+    with st.expander("Detailed criteria explanations", expanded=True):
+        for key, label in CRITERIA_LABELS.items():
+            st.markdown(f"**{label}**")
+            st.write(explanations.get(key, "No explanation returned."))
+
+    with st.expander("Top Problems", expanded=True):
+        render_problem_list(data.get("top_3_problems", []) or [])
+
+    with st.expander("Sentence Corrections", expanded=True):
+        render_sentence_corrections(data.get("sentence_level_corrections", []) or [])
+
+    with st.expander("Band 7.5 Rewrite", expanded=False):
+        st.write(data.get("band_75_rewrite", "No rewrite returned."))
+
+    with st.expander("Useful Expressions", expanded=False):
+        expressions = data.get("useful_expressions", []) or []
+        if expressions:
+            st.dataframe(pd.DataFrame(expressions), use_container_width=True, hide_index=True)
+        else:
+            st.info("No useful expressions were returned.")
+
+    with st.expander("Next Practice Plan", expanded=False):
+        plan = data.get("next_practice_plan", []) or []
+        if plan:
+            for item in plan:
+                st.markdown(f"- {item}")
+        else:
+            st.info("No practice plan was returned.")
 
 
 def render_history() -> None:
@@ -258,14 +309,11 @@ def render_history() -> None:
     scored_history = [item for item in history if item["score"] is not None]
 
     st.subheader("History Trend")
-    if not scored_history:
-        st.info("No scored history yet. Complete a correction to build your trend chart.")
-        return
-
-    if len(scored_history) == 1:
-        item = scored_history[0]
-        render_score_card("Latest Score", f"{item['score']:.1f}", item["created_at"])
-        st.info("Need at least 2 essays to generate progress trend")
+    if len(scored_history) < 2:
+        if len(scored_history) == 1:
+            item = scored_history[0]
+            render_score_card("Latest Score", f"{item['score']:.1f}", item["created_at"])
+        st.info("Need at least 2 essays to generate a progress trend.")
         return
 
     chart_data = pd.DataFrame(
@@ -278,12 +326,13 @@ def render_history() -> None:
     st.caption("Showing the latest 10 saved correction records with extractable scores.")
 
 
-st.title("IELTS Writing Correction Skill")
-st.caption("A calm AI writing desk for IELTS feedback, revision, and progress tracking.")
+st.title("IELTS Writing AI Examiner")
+st.caption("Structured IELTS Writing Task 2 scoring, diagnosis, rewriting, and progress tracking.")
 
 with st.sidebar:
     st.header("Settings")
-    task_type = st.radio("IELTS task type", ["Task 2", "Task 1"], horizontal=True)
+    task_type = "Task 2"
+    st.caption("IELTS task type: Task 2")
     provider = st.selectbox("AI provider", ["DeepSeek", "OpenAI"])
     default_model = "deepseek-chat" if provider == "DeepSeek" else "gpt-4.1-mini"
     model = st.text_input("Model", value=default_model)
@@ -307,10 +356,15 @@ with st.sidebar:
                 "latency_ms": result["latency_ms"],
             }
         except AIGraderError as exc:
+            status_code = exc.status_code if exc.status_code is not None else "N/A"
             st.session_state.deepseek_status = {
                 "state": "failed",
-                "message": exc.user_message(),
+                "message": (
+                    f"Provider: {exc.provider}. Model: {exc.model}. "
+                    f"Status: {status_code}. {exc.user_message()}"
+                ),
                 "latency_ms": None,
+                "debug": exc.debug_details(),
             }
 
     status = st.session_state.deepseek_status
@@ -320,6 +374,9 @@ with st.sidebar:
     elif status["state"] == "failed":
         st.error("DeepSeek API failed")
         st.caption(status["message"])
+        if status.get("debug"):
+            with st.expander("Debug details", expanded=False):
+                st.text(status["debug"])
     else:
         st.caption("DeepSeek API status has not been checked.")
 
@@ -344,7 +401,7 @@ input_col, result_col = st.columns([0.92, 1.28], gap="large")
 with input_col:
     st.subheader("Writing Input")
     topic = st.text_area(
-        "Essay question",
+        "Task 2 question",
         height=120,
         placeholder="Paste the IELTS Writing question here.",
     )
@@ -387,6 +444,8 @@ with result_col:
     st.subheader("Examiner Workspace")
     if "latest_report" not in st.session_state:
         st.session_state.latest_report = ""
+        st.session_state.latest_parsed_report = None
+        st.session_state.latest_raw_report = ""
         st.session_state.latest_saved_path = None
         st.session_state.latest_error_book_path = None
 
@@ -394,21 +453,24 @@ with result_col:
         if not topic.strip() or not essay.strip():
             st.error("Please enter both the essay question and your essay.")
         else:
-            with st.spinner("AI is evaluating your essay..."):
+            with st.spinner("AI examiner is scoring, diagnosing, and rewriting your essay..."):
                 try:
-                    report = grade_essay(
+                    raw_report = grade_essay(
                         provider=provider,
                         task_type=task_type,
                         topic=topic,
                         essay=essay,
                         model=model,
                     )
+                    parsed_report = parse_examiner_report(raw_report)
+                    report = structured_report_to_markdown(parsed_report)
                     saved_path = save_markdown_record(
                         task_type=task_type,
                         topic=topic,
                         essay=essay,
                         report=report,
                         word_count=word_count,
+                        parsed_result=parsed_report,
                     )
                     error_book_path = append_error_book(
                         task_type=task_type,
@@ -416,16 +478,28 @@ with result_col:
                         report=report,
                     )
                     st.session_state.latest_report = report
+                    st.session_state.latest_parsed_report = parsed_report
+                    st.session_state.latest_raw_report = raw_report
                     st.session_state.latest_saved_path = saved_path
                     st.session_state.latest_error_book_path = error_book_path
                 except AIGraderError as exc:
+                    status_code = exc.status_code if exc.status_code is not None else "N/A"
                     st.error(exc.user_message())
+                    st.caption(
+                        f"Provider: {exc.provider}. Model: {exc.model}. Status: {status_code}."
+                    )
                     st.info("Use the sidebar connection test to confirm your DeepSeek setup.")
+                    with st.expander("Debug details", expanded=False):
+                        st.text(exc.debug_details())
                 except Exception as exc:
                     st.error("Something went wrong while preparing the report. Please try again.")
+                    with st.expander("Debug details", expanded=False):
+                        st.text(str(exc))
 
     if st.session_state.latest_report:
-        score = extract_overall_score(st.session_state.latest_report)
+        parsed_report = st.session_state.latest_parsed_report or {}
+        parsed_data = parsed_report.get("data", {}) if parsed_report.get("ok") else {}
+        score = parsed_data.get("overall_band")
         score_text = f"{score:.1f}" if score is not None else "Pending"
         card_one, card_two, card_three = st.columns(3)
         with card_one:
@@ -437,7 +511,7 @@ with result_col:
 
         tab_report, tab_files = st.tabs(["Report", "Saved Files"])
         with tab_report:
-            st.markdown(st.session_state.latest_report)
+            render_structured_report(parsed_report)
         with tab_files:
             if st.session_state.latest_saved_path:
                 st.write(str(st.session_state.latest_saved_path))

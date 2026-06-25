@@ -3,139 +3,83 @@
 
 def build_grading_prompt(task_type: str, topic: str, essay: str) -> str:
     """Build the prompt used by the IELTS correction Skill."""
-    if task_type == "Task 1":
-        task_focus = """
-Task 1 scoring focus:
-- Task Achievement: clear overview, accurate key features, relevant comparisons, no invented data
-- Coherence and Cohesion: logical grouping of data, clear paragraphing, controlled linking
-- Lexical Resource: precise trend/comparison language, no memorised phrases that hide meaning
-- Grammatical Range and Accuracy: accurate data sentences, varied comparison structures
-"""
-    else:
-        task_focus = """
-Task 2 scoring focus:
-- Task Response: clear position, fully answered question, developed ideas, relevant examples
-- Coherence and Cohesion: logical progression, focused paragraphs, clear referencing and linking
-- Lexical Resource: topic-specific but natural vocabulary, accurate collocations
-- Grammatical Range and Accuracy: controlled complex sentences, accurate clauses and punctuation
-"""
-
     return f"""
-You are a strict but helpful IELTS Writing examiner.
-You also act as a writing coach for a Chinese high school student who is trying
-to improve from Band 6.0 to Band 7.5.
+You are a strict but helpful IELTS Writing Task 2 examiner.
+You also act as a practical writing coach for a Chinese high school student who
+is trying to improve toward Band 7.5.
 
-Your grading must be based on IELTS Writing Band Descriptors:
-- Task Response for Task 2, or Task Achievement for Task 1
+Use IELTS Writing Task 2 band descriptors:
+- Task Response
 - Coherence and Cohesion
 - Lexical Resource
 - Grammatical Range and Accuracy
 
-Core examiner rules:
-- Be strict, realistic, and evidence-based.
-- Do not only praise the essay. Identify the problems that most clearly limit the band score.
-- Do not invent content that the student did not write.
-- Every problem you mention must quote the student's exact original sentence or phrase.
-- If a problem is about a missing idea, quote the closest relevant sentence and explain what is missing.
-- Do not rewrite the essay in an overly advanced native-speaker style.
-- The Band 7.5 rewrite must remain learnable for a high school student.
-- Prefer clear academic English over rare vocabulary.
-- Focus on practical improvement from Band 6.0 to Band 7.5.
-- If the task is Task 1, judge data selection, overview, comparisons, and accuracy.
-- If the task is Task 2, judge position, idea development, relevance, and examples.
-- Return only clean Markdown. Do not add sections outside the required structure.
+Examiner rules:
+- Be strict, specific, realistic, and evidence-based.
+- Quote the student's exact original sentence or phrase when explaining problems.
+- Do not invent content, examples, claims, or intentions that the student did not write.
+- Do not use mechanical template feedback.
+- Do not overpraise. Focus on what limits the score and how to improve it.
+- Give actionable advice that the student can apply in the next essay.
+- Scores may be .0 or .5 only.
+- If a score is approximate, say so inside the relevant explanation.
+- The Band 7.5 rewrite must stay close to the student's argument and remain learnable.
+- Prefer clear academic English over rare or unnatural vocabulary.
 
-{task_focus}
+Return valid JSON only. Do not wrap it in Markdown. Do not use ```json.
+Use this exact top-level structure:
 
-Fixed output structure:
+{{
+  "overall_band": 6.0,
+  "criteria_scores": {{
+    "task_response": 6.0,
+    "coherence_and_cohesion": 6.5,
+    "lexical_resource": 6.0,
+    "grammatical_range_and_accuracy": 6.0
+  }},
+  "score_explanation": {{
+    "task_response": "Specific reason with quoted evidence from the essay.",
+    "coherence_and_cohesion": "Specific reason with quoted evidence from the essay.",
+    "lexical_resource": "Specific reason with quoted evidence from the essay.",
+    "grammatical_range_and_accuracy": "Specific reason with quoted evidence from the essay."
+  }},
+  "top_3_problems": [
+    {{
+      "problem": "The scoring problem.",
+      "original_sentence": "Exact sentence or phrase from the student's essay.",
+      "suggestion": "Concrete improvement advice."
+    }}
+  ],
+  "sentence_level_corrections": [
+    {{
+      "original": "Exact original sentence or phrase.",
+      "corrected": "Improved version.",
+      "reason": "Brief grammar, vocabulary, logic, or cohesion reason."
+    }}
+  ],
+  "band_75_rewrite": "Full Band 7.5-style rewrite.",
+  "useful_expressions": [
+    {{
+      "expression": "Reusable expression from the rewrite.",
+      "meaning": "Meaning in simple English.",
+      "example": "Short example sentence."
+    }}
+  ],
+  "next_practice_plan": [
+    "Concrete next practice action."
+  ]
+}}
 
-# IELTS Writing Examiner Report
-
-## 1. Overall Band Score
-
-Give an estimated band range, such as 6.0-6.5 or 6.5-7.0.
-Then give one likely score inside that range.
-Explain in 2-4 sentences why this range is fair.
-
-## 2. Four Criteria Scores
-
-| Criterion | Band Range | Likely Score | Why |
-|---|---:|---:|---|
-| Task Response / Task Achievement |  |  |  |
-| Coherence and Cohesion |  |  |  |
-| Lexical Resource |  |  |  |
-| Grammatical Range and Accuracy |  |  |  |
-
-## 3. Top 3 Score-Boosting Priorities
-
-List exactly three priorities that would most quickly move this student toward Band 7.5.
-For each priority, include:
-- Priority
-- Original sentence or phrase as evidence
-- Why it matters
-- What to practise
-
-## 4. Main Problems
-
-List the 3-5 biggest problems holding the essay back from Band 7.5.
-For each problem, include:
-- Problem
-- Original sentence or phrase
-- Why it lowers the score
-- How to improve
-
-## 5. Sentence-level Corrections
-
-Correct 6-10 important sentences or phrases.
-Use this format:
-
-| Original | Problem | Improved version |
-|---|---|---|
-
-## 6. Paragraph-level Feedback
-
-Give feedback paragraph by paragraph.
-For each paragraph, explain:
-- What works
-- What weakens the band score
-- One concrete improvement
-
-## 7. Band 7.5 Rewrite
-
-Rewrite the full essay in a realistic Band 7.5 style.
-Keep the ideas close to the student's original argument.
-Do not add complex ideas that the student did not attempt.
-Use vocabulary and sentence structures that a strong high school student can learn.
-
-## 8. Useful Expressions
-
-Give 8-12 expressions from the rewrite.
-For each expression, include:
-- Expression
-- Meaning
-- When to use it
-- One short example sentence
-
-## 9. Seven-Day Training Plan
-
-Give a practical 7-day plan.
-Each day must include:
-- Focus
-- 20-40 minute task
-- Output the student should produce
-
-## 10. Next Practice Task
-
-Give one specific next IELTS Writing task.
-Also give:
-- One main skill to focus on
-- One sentence pattern to practise
-- One warning about what to avoid next time
+Quantity requirements:
+- top_3_problems: exactly 3 items.
+- sentence_level_corrections: 6 to 10 important corrections.
+- useful_expressions: 6 to 10 expressions.
+- next_practice_plan: 4 to 7 concise actions.
 
 IELTS task type:
 {task_type}
 
-Essay question:
+Task 2 question:
 {topic}
 
 Student essay:

@@ -1,16 +1,18 @@
-# IELTS Writing AI Grader
+# IELTS Writing AI Examiner
 
-A focused IELTS writing feedback workspace that turns one essay into a score, a revision plan, and a reusable mistake record.
-
-This project is designed like a small learning SaaS: simple input, clear AI feedback, local progress tracking, and a clean Streamlit interface.
+A Streamlit IELTS Writing Task 2 examiner that uses DeepSeek to return structured scoring, feedback, rewrite suggestions, and local progress history.
 
 ## What It Does
 
-- Scores IELTS Writing essays with the four official-style criteria.
+- Uses the DeepSeek API through `requests.post`.
+- Returns structured IELTS scoring when the model provides valid JSON.
+- Shows Overall Band Score and four criteria scores.
 - Gives concrete feedback with quoted student sentences.
-- Produces a Band 7.5-style rewrite that stays learnable for high-school students.
-- Saves every correction locally as a Markdown record.
-- Tracks score history so learners can see progress over time.
+- Produces sentence-level corrections, a Band 7.5 rewrite, useful expressions, and a next practice plan.
+- Saves local history records with raw AI output and structured metadata.
+- Shows a progress trend when at least two scored essays are available.
+- Includes a sidebar `Test DeepSeek Connection` check with latency.
+- Falls back safely to the raw examiner report if structured parsing fails.
 
 ## Screenshot
 
@@ -40,23 +42,23 @@ IELTS Examiner Prompt
 DeepSeek API request with requests.post
         |
         v
-Score Cards + Feedback Report + Local Markdown History
+Score Cards + Structured Feedback + Local Markdown/JSON History
 ```
 
 ## Features
 
-- Task 1 and Task 2 support
+- Task 2 question and essay input
 - Overall band score and four criteria scores
 - Word count warning for IELTS minimum requirements
 - Main problems with quoted original sentences
 - Sentence-level corrections
-- Paragraph-level feedback
 - Band 7.5 rewrite
 - Useful expressions for review
-- Seven-day practice plan
+- Next practice plan
 - Local history trend chart
 - Error book saved to `records/error_book.md`
 - Sidebar DeepSeek connection test with latency
+- Raw report fallback when JSON parsing fails
 
 ## Example Input
 
@@ -80,25 +82,23 @@ their interest and future job opportunities.
 
 ## Example Output
 
-The app returns a structured report like this:
+The app asks the model for JSON in this shape:
 
 ```text
-Overall Band Score: 6.0-6.5
-
-Four Criteria Scores:
-- Task Response: 6.0
-- Coherence and Cohesion: 6.0
-- Lexical Resource: 6.5
-- Grammatical Range and Accuracy: 6.0
-
-Top Priorities:
-1. Develop both views with clearer examples.
-2. Improve paragraph progression.
-3. Use more precise academic vocabulary.
-
-Band 7.5 Rewrite:
-Some students should be free to follow their interests, but universities also
-need to help them prepare for realistic career paths...
+{
+  "overall_band": 6.0,
+  "criteria_scores": {
+    "task_response": 6.0,
+    "coherence_and_cohesion": 6.5,
+    "lexical_resource": 6.0,
+    "grammatical_range_and_accuracy": 6.0
+  },
+  "top_3_problems": [],
+  "sentence_level_corrections": [],
+  "band_75_rewrite": "",
+  "useful_expressions": [],
+  "next_practice_plan": []
+}
 ```
 
 Actual output depends on the essay length, quality, and the AI model response.
@@ -155,6 +155,14 @@ through `requests.post`.
 
 ### 5. Run the app
 
+Preferred launcher:
+
+```bash
+python start.py
+```
+
+Or run Streamlit directly:
+
 ```bash
 streamlit run app.py
 ```
@@ -171,7 +179,7 @@ http://localhost:8501
 2. Click `Test DeepSeek Connection` in the sidebar.
 3. Paste an IELTS question and essay.
 4. Click `Grade My Essay`.
-5. Review the score cards, feedback report, saved Markdown record, and history trend.
+5. Review the score cards, structured feedback, saved record, and history trend.
 
 ## Project Structure
 
@@ -184,6 +192,7 @@ ielts-writing-skill/
     ai_grader.py
     error_book.py
     prompts.py
+    result_parser.py
     storage.py
     text_utils.py
   records/
@@ -208,14 +217,6 @@ AI scoring is probabilistic. The report should be treated as guided practice fee
 
 Browser translation plugins can modify Streamlit text and layout. Turn off translation for `localhost` if buttons or labels behave unexpectedly.
 
-## Roadmap
-
-- Add sample essays for quick demos
-- Add export to PDF
-- Add filters for grammar, vocabulary, logic, and structure issues
-- Add a small screenshot gallery for portfolio presentation
-- Add tests for word count and score extraction
-
 ## Tech Stack
 
 - Python
@@ -223,4 +224,4 @@ Browser translation plugins can modify Streamlit text and layout. Turn off trans
 - DeepSeek API
 - `requests.post` for DeepSeek grading
 - OpenAI Python SDK for optional OpenAI provider
-- Local Markdown files for history
+- Local Markdown and JSON files for history

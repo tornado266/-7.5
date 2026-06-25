@@ -33,6 +33,7 @@ class AIGraderError(Exception):
         api_key_loaded: bool,
         original_error: Exception,
         status_code: int | None = None,
+        raw_response_text: str | None = None,
     ) -> None:
         self.provider = provider
         self.model = model
@@ -40,6 +41,7 @@ class AIGraderError(Exception):
         self.api_key_loaded = api_key_loaded
         self.original_error = original_error
         self.status_code = status_code
+        self.raw_response_text = raw_response_text or ""
         super().__init__(self._build_message())
 
     def _format_error_chain(self, error: BaseException) -> str:
@@ -66,6 +68,8 @@ class AIGraderError(Exception):
     def user_message(self) -> str:
         """Return a short message that is useful for non-technical users."""
         error_text = str(self.original_error)
+        if not self.api_key_loaded:
+            return "DeepSeek API key is missing. Add DEEPSEEK_API_KEY to your .env file, then restart the app."
         if self.status_code == 401:
             return "DeepSeek rejected the API key. Check that DEEPSEEK_API_KEY is correct."
         if self.status_code in {402, 429}:
@@ -77,6 +81,20 @@ class AIGraderError(Exception):
         if "connection" in error_text.lower() or "winerror" in error_text.lower():
             return "The app could not connect to DeepSeek from this Streamlit session."
         return "The AI request failed. Please check the setup and try again."
+
+    def debug_details(self) -> str:
+        """Return technical details for a collapsed debug expander."""
+        parts = [
+            f"provider: {self.provider}",
+            f"model: {self.model}",
+            f"status_code: {self.status_code if self.status_code is not None else 'N/A'}",
+            f"api_key_loaded: {self.api_key_loaded}",
+            "",
+            str(self),
+        ]
+        if self.raw_response_text:
+            parts.extend(["", "raw_response_text:", self.raw_response_text])
+        return "\n".join(parts)
 
 
 def get_provider_config(provider: str) -> tuple[str, str | None, str]:
@@ -130,6 +148,9 @@ def build_deepseek_http_error(response: requests.Response) -> RuntimeError:
 def call_deepseek(messages: list[dict[str, str]]) -> str:
     """Send messages to DeepSeek with a direct HTTP request."""
     api_key = os.getenv("DEEPSEEK_API_KEY")
+    if not api_key:
+        raise ValueError("DEEPSEEK_API_KEY is missing.")
+
     response = requests.post(
         "https://api.deepseek.com/v1/chat/completions",
         headers={
@@ -173,6 +194,7 @@ def test_deepseek_connection() -> dict[str, object]:
             api_key_loaded=bool(os.getenv("DEEPSEEK_API_KEY")),
             original_error=error,
             status_code=status_code,
+            raw_response_text=response.text if response is not None else "",
         ) from exc
     except Exception as exc:
         raise AIGraderError(
@@ -197,7 +219,7 @@ def grade_essay(provider: str, task_type: str, topic: str, essay: str, model: st
     messages = [
         {
             "role": "system",
-            "content": "You are an expert IELTS Writing examiner.",
+            "content": "You are a strict but helpful IELTS Writing Task 2 examiner. Return valid JSON only.",
         },
         {"role": "user", "content": prompt},
     ]
@@ -224,6 +246,7 @@ def grade_essay(provider: str, task_type: str, topic: str, essay: str, model: st
                 api_key_loaded=bool(api_key),
                 original_error=error,
                 status_code=status_code,
+                raw_response_text=response.text if response is not None else "",
             ) from exc
         except Exception as exc:
             raise AIGraderError(
