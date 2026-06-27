@@ -868,7 +868,9 @@ with st.sidebar:
     provider = st.selectbox("AI provider", ["DeepSeek", "OpenAI"])
     default_model = "deepseek-chat" if provider == "DeepSeek" else "gpt-4.1-mini"
     model = st.text_input("Model", value=default_model)
-    st.info("For DeepSeek, set DEEPSEEK_API_KEY. For OpenAI, set OPENAI_API_KEY.")
+    st.info(
+        "Add API keys in Streamlit Secrets for deployment, or use a local .env file."
+    )
     with st.expander("Examiner report includes", expanded=False):
         st.markdown(
             """

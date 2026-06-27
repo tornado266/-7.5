@@ -3,11 +3,24 @@
 import os
 
 from openai import APIConnectionError, APIStatusError, OpenAI, OpenAIError
+import streamlit as st
 
 from src.prompts import build_grading_prompt
 
 
 DEEPSEEK_DEFAULT_BASE_URL = "https://api.deepseek.com"
+
+
+def get_runtime_setting(name: str, default: str | None = None) -> str | None:
+    """Read Streamlit Cloud secrets first, then local environment variables."""
+    try:
+        value = st.secrets.get(name)
+    except (FileNotFoundError, KeyError):
+        value = None
+
+    if value not in (None, ""):
+        return str(value)
+    return os.getenv(name, default)
 
 
 class AIGraderError(Exception):
@@ -53,15 +66,20 @@ class AIGraderError(Exception):
 
 
 def get_provider_config(provider: str) -> tuple[str, str | None, str]:
-    """Return environment variable name, API key, and base URL for a provider."""
+    """Return secret name, API key, and base URL for a provider."""
     if provider == "DeepSeek":
         return (
             "DEEPSEEK_API_KEY",
-            os.getenv("DEEPSEEK_API_KEY"),
-            os.getenv("DEEPSEEK_BASE_URL", DEEPSEEK_DEFAULT_BASE_URL),
+            get_runtime_setting("DEEPSEEK_API_KEY"),
+            get_runtime_setting("DEEPSEEK_BASE_URL", DEEPSEEK_DEFAULT_BASE_URL)
+            or DEEPSEEK_DEFAULT_BASE_URL,
         )
 
-    return ("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY"), "https://api.openai.com/v1")
+    return (
+        "OPENAI_API_KEY",
+        get_runtime_setting("OPENAI_API_KEY"),
+        "https://api.openai.com/v1",
+    )
 
 
 def build_client(provider: str) -> OpenAI:

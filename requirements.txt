@@ -1,6 +1,6 @@
-# Runtime dependencies
-openai>=1.88.0
-pandas>=2.0.0
-python-dotenv>=1.0.1
-requests>=2.32.0
-streamlit>=1.35.0
+# Runtime dependencies verified for Streamlit Community Cloud
+streamlit==1.58.0
+openai==2.43.0
+pandas==3.0.3
+python-dotenv==1.2.2
+requests==2.34.2

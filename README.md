@@ -153,6 +153,9 @@ POST https://api.deepseek.com/v1/chat/completions
 
 through `requests.post`.
 
+The app reads Streamlit Secrets first and falls back to local environment variables,
+so a local `.env` file is only used during development.
+
 ### 5. Run the app
 
 Preferred launcher:
@@ -172,6 +175,27 @@ Open the local URL shown in the terminal, usually:
 ```text
 http://localhost:8501
 ```
+
+## Deploy To Streamlit Community Cloud
+
+1. Push this repository to GitHub.
+2. Open [Streamlit Community Cloud](https://share.streamlit.io/) and create an app.
+3. Select repository `tornado266/-7.5`, branch `main`, and entrypoint `app.py`.
+4. Open **Advanced settings** and add the following Secrets:
+
+```toml
+DEEPSEEK_API_KEY = "your_deepseek_api_key_here"
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+
+# Optional, only when using the OpenAI provider.
+OPENAI_API_KEY = "your_openai_api_key_here"
+```
+
+5. Keep the default supported Python version and click **Deploy**.
+
+Never commit `.streamlit/secrets.toml` or `.env`. Both are excluded by
+`.gitignore`. Files written under `records/` on Community Cloud are ephemeral and
+may be cleared when the app restarts.
 
 ## Recommended Demo Flow
 
