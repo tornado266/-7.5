@@ -2,16 +2,127 @@
 
 import json
 import re
+from io import BytesIO
 from datetime import datetime
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
+from xml.sax.saxutils import escape
+
+from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 
 from src.result_parser import parse_band
 
 
 RECORDS_DIR = Path("records")
 SCORE_PATTERN = re.compile(r"(?:Likely Score|Overall Band|likely score)[^\d]*(\d(?:\.\d)?)")
+
+
+def build_markdown_record(
+    task_type: str,
+    topic: str,
+    essay: str,
+    report: str,
+    word_count: int,
+    created_at: datetime | None = None,
+    overall_band: float | None = None,
+) -> str:
+    """Build a complete downloadable record without writing it to disk."""
+    created_at = created_at or datetime.now()
+    return dedent(
+        f"""
+        # IELTS Writing Examiner Record
+
+        - Task Type: {task_type}
+        - Word Count: {word_count}
+        - Created At: {created_at.strftime("%Y-%m-%d %H:%M:%S")}
+        - Overall Band: {overall_band if overall_band is not None else "N/A"}
+
+        ## Essay Question
+
+        {topic}
+
+        ## Student Essay
+
+        {essay}
+
+        ---
+
+        {report}
+        """
+    ).strip()
+
+
+def markdown_to_pdf(markdown: str) -> bytes:
+    """Render a Markdown report as a readable A4 PDF with CJK support."""
+    pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
+    buffer = BytesIO()
+    document = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=18 * mm,
+        leftMargin=18 * mm,
+        topMargin=18 * mm,
+        bottomMargin=18 * mm,
+        title="IELTS Writing Examiner Report",
+    )
+
+    base = getSampleStyleSheet()
+    body = ParagraphStyle(
+        "ReportBody",
+        parent=base["BodyText"],
+        fontName="STSong-Light",
+        fontSize=9.5,
+        leading=15,
+        spaceAfter=5,
+    )
+    title = ParagraphStyle(
+        "ReportTitle",
+        parent=body,
+        fontSize=18,
+        leading=24,
+        alignment=TA_CENTER,
+        spaceAfter=12,
+    )
+    heading = ParagraphStyle(
+        "ReportHeading",
+        parent=body,
+        fontSize=13,
+        leading=18,
+        spaceBefore=9,
+        spaceAfter=6,
+    )
+
+    story = []
+    for raw_line in markdown.splitlines():
+        line = raw_line.strip()
+        if not line:
+            story.append(Spacer(1, 3 * mm))
+            continue
+        if line == "---":
+            story.append(Spacer(1, 2 * mm))
+            continue
+
+        plain = re.sub(r"[*_`]", "", line)
+        if plain.startswith("# "):
+            story.append(Paragraph(escape(plain[2:]), title))
+        elif plain.startswith("## "):
+            story.append(Paragraph(escape(plain[3:]), heading))
+        elif plain.startswith("### "):
+            story.append(Paragraph(escape(plain[4:]), heading))
+        elif plain.startswith(("- ", "* ")):
+            story.append(Paragraph(f"• {escape(plain[2:])}", body))
+        else:
+            story.append(Paragraph(escape(plain), body))
+
+    document.build(story)
+    return buffer.getvalue()
 
 
 def save_markdown_record(
@@ -52,28 +163,15 @@ def save_markdown_record(
         "markdown_file": file_path.name,
     }
 
-    content = dedent(
-        f"""
-        # IELTS Writing Examiner Record
-
-        - Task Type: {task_type}
-        - Word Count: {word_count}
-        - Created At: {created_at.strftime("%Y-%m-%d %H:%M:%S")}
-        - Overall Band: {overall_band if overall_band is not None else "N/A"}
-
-        ## Essay Question
-
-        {topic}
-
-        ## Student Essay
-
-        {essay}
-
-        ---
-
-        {report}
-        """
-    ).strip()
+    content = build_markdown_record(
+        task_type=task_type,
+        topic=topic,
+        essay=essay,
+        report=report,
+        word_count=word_count,
+        created_at=created_at,
+        overall_band=overall_band,
+    )
 
     file_path.write_text(content, encoding="utf-8")
     json_path.write_text(

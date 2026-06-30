@@ -16,7 +16,7 @@ from src.ai_grader import (
     review_sentence_rewrite,
 )
 from src.error_book import append_error_book
-from src.storage import save_markdown_record
+from src.storage import markdown_to_pdf, save_markdown_record
 from src.text_utils import count_words, word_count_warning
 
 
@@ -212,13 +212,25 @@ inject_page_style()
 
 
 def show_markdown_file(path: Path) -> None:
-    """Show a saved markdown file inside Streamlit."""
-    with path.open("r", encoding="utf-8") as file:
+    """Offer the complete record as Markdown and PDF downloads."""
+    markdown = path.read_text(encoding="utf-8")
+    pdf = markdown_to_pdf(markdown)
+    markdown_column, pdf_column = st.columns(2)
+    with markdown_column:
         st.download_button(
-            label="Download Markdown Record",
-            data=file.read(),
+            label="Download Markdown",
+            data=markdown,
             file_name=path.name,
             mime="text/markdown",
+            use_container_width=True,
+        )
+    with pdf_column:
+        st.download_button(
+            label="Download PDF",
+            data=pdf,
+            file_name=f"{path.stem}.pdf",
+            mime="application/pdf",
+            use_container_width=True,
         )
 
 
