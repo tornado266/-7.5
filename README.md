@@ -1,5 +1,8 @@
 # IELTS Writing AI Examiner
 
+## 🚀 Live Demo
+
+Try it here: https://xbz4ydgw2t6cm2ytkh79vq.streamlit.app/
 A Streamlit IELTS Writing Task 2 examiner that uses DeepSeek to return structured scoring, feedback, rewrite suggestions, and local progress history.
 
 ## What It Does
