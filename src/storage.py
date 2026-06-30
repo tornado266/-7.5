@@ -9,19 +9,38 @@ from textwrap import dedent
 from typing import Any
 from xml.sax.saxutils import escape
 
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.cidfonts import UnicodeCIDFont
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import (
+    HRFlowable,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
 
 from src.result_parser import parse_band
 
 
 RECORDS_DIR = Path("records")
+PDF_FONT_PATH = Path(__file__).resolve().parents[1] / "assets" / "fonts" / "NotoSansSC-Regular.ttf"
 SCORE_PATTERN = re.compile(r"(?:Likely Score|Overall Band|likely score)[^\d]*(\d(?:\.\d)?)")
+
+INK = colors.HexColor("#173B45")
+TEAL = colors.HexColor("#287D86")
+CORAL = colors.HexColor("#E87961")
+PALE_BLUE = colors.HexColor("#EAF6F7")
+PALE_CORAL = colors.HexColor("#FFF1EC")
+WARM_WHITE = colors.HexColor("#FCFBF8")
+MUTED = colors.HexColor("#62777D")
+RULE = colors.HexColor("#CFE1E3")
 
 
 def build_markdown_record(
@@ -60,68 +79,328 @@ def build_markdown_record(
 
 
 def markdown_to_pdf(markdown: str) -> bytes:
-    """Render a Markdown report as a readable A4 PDF with CJK support."""
-    pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
+    """Render a polished, portable IELTS report with an embedded CJK font."""
+    if "NotoSansSC" not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(TTFont("NotoSansSC", str(PDF_FONT_PATH)))
+        pdfmetrics.registerFontFamily(
+            "NotoSansSC",
+            normal="NotoSansSC",
+            bold="NotoSansSC",
+            italic="NotoSansSC",
+            boldItalic="NotoSansSC",
+        )
+
     buffer = BytesIO()
     document = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        rightMargin=18 * mm,
-        leftMargin=18 * mm,
-        topMargin=18 * mm,
-        bottomMargin=18 * mm,
+        rightMargin=20 * mm,
+        leftMargin=20 * mm,
+        topMargin=22 * mm,
+        bottomMargin=20 * mm,
         title="IELTS Writing Examiner Report",
+        author="IELTS Writing Correction Skill",
     )
 
     base = getSampleStyleSheet()
     body = ParagraphStyle(
         "ReportBody",
         parent=base["BodyText"],
-        fontName="STSong-Light",
-        fontSize=9.5,
-        leading=15,
-        spaceAfter=5,
+        fontName="NotoSansSC",
+        textColor=INK,
+        fontSize=9.2,
+        leading=15.5,
+        spaceAfter=6,
+        splitLongWords=True,
     )
-    title = ParagraphStyle(
-        "ReportTitle",
+    cover_title = ParagraphStyle(
+        "CoverTitle",
         parent=body,
-        fontSize=18,
-        leading=24,
+        fontSize=24,
+        leading=31,
         alignment=TA_CENTER,
+        textColor=INK,
+        spaceAfter=4,
+    )
+    cover_kicker = ParagraphStyle(
+        "CoverKicker",
+        parent=body,
+        fontSize=9,
+        leading=13,
+        alignment=TA_CENTER,
+        textColor=TEAL,
         spaceAfter=12,
     )
     heading = ParagraphStyle(
         "ReportHeading",
         parent=body,
-        fontSize=13,
-        leading=18,
+        fontSize=15,
+        leading=21,
+        textColor=INK,
+        spaceBefore=13,
+        spaceAfter=8,
+        keepWithNext=True,
+    )
+    subheading = ParagraphStyle(
+        "ReportSubheading",
+        parent=body,
+        fontSize=11.2,
+        leading=17,
+        textColor=TEAL,
         spaceBefore=9,
-        spaceAfter=6,
+        spaceAfter=5,
+        keepWithNext=True,
+    )
+    meta = ParagraphStyle(
+        "Meta",
+        parent=body,
+        fontSize=8.2,
+        leading=12,
+        textColor=MUTED,
+        alignment=TA_CENTER,
+    )
+    score_style = ParagraphStyle(
+        "Score",
+        parent=body,
+        fontSize=30,
+        leading=34,
+        textColor=CORAL,
+        alignment=TA_CENTER,
+    )
+    score_label = ParagraphStyle(
+        "ScoreLabel",
+        parent=meta,
+        fontSize=8.5,
+        textColor=INK,
+        spaceAfter=3,
+    )
+    question_style = ParagraphStyle(
+        "Question",
+        parent=body,
+        fontSize=10.5,
+        leading=17,
+        textColor=INK,
+        alignment=TA_LEFT,
+    )
+    essay_style = ParagraphStyle(
+        "Essay",
+        parent=body,
+        fontSize=9.5,
+        leading=16.5,
+        leftIndent=8,
+        rightIndent=8,
+        borderPadding=10,
+        borderColor=RULE,
+        borderWidth=0.7,
+        borderRadius=4,
+        backColor=WARM_WHITE,
+        spaceAfter=8,
+    )
+    quote_style = ParagraphStyle(
+        "Quote",
+        parent=body,
+        leftIndent=10,
+        rightIndent=6,
+        borderPadding=(7, 9, 7, 10),
+        borderColor=TEAL,
+        borderWidth=0,
+        borderLeftWidth=2,
+        backColor=PALE_BLUE,
+        textColor=INK,
+        spaceBefore=4,
+        spaceAfter=8,
+    )
+    table_cell = ParagraphStyle(
+        "TableCell",
+        parent=body,
+        fontSize=7.4,
+        leading=11.5,
+        spaceAfter=0,
+    )
+    table_header = ParagraphStyle(
+        "TableHeader",
+        parent=table_cell,
+        textColor=colors.white,
     )
 
-    story = []
-    for raw_line in markdown.splitlines():
-        line = raw_line.strip()
+    record_parts = re.split(r"\n\s*---\s*\n", markdown, maxsplit=1)
+    record_header = record_parts[0]
+    report = record_parts[1] if len(record_parts) > 1 else markdown
+
+    def field(pattern: str, source: str = record_header, default: str = "N/A") -> str:
+        match = re.search(pattern, source, flags=re.IGNORECASE | re.MULTILINE)
+        return match.group(1).strip() if match else default
+
+    task_type = field(r"^- Task Type:\s*(.+)$")
+    word_count = field(r"^- Word Count:\s*(.+)$")
+    created_at = field(r"^- Created At:\s*(.+)$")
+    overall_band = field(r"^- Overall Band:\s*(.+)$")
+    if overall_band == "N/A":
+        score_match = SCORE_PATTERN.search(report)
+        overall_band = score_match.group(1) if score_match else "N/A"
+
+    question_match = re.search(
+        r"## Essay Question\s*(.*?)\s*## Student Essay",
+        record_header,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    essay_match = re.search(
+        r"## Student Essay\s*(.*)$",
+        record_header,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    question = question_match.group(1).strip() if question_match else "Question not recorded."
+    essay = essay_match.group(1).strip() if essay_match else "Essay not recorded."
+
+    def inline_markup(text: str) -> str:
+        marked = escape(text.strip())
+        marked = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", marked)
+        marked = re.sub(r"`(.+?)`", r"<font color='#287D86'>\1</font>", marked)
+        return marked
+
+    story = [
+        Spacer(1, 16 * mm),
+        Paragraph("IELTS WRITING", cover_kicker),
+        Paragraph("Examiner Feedback Report", cover_title),
+        Spacer(1, 5 * mm),
+    ]
+
+    score_card = Table(
+        [[Paragraph("OVERALL BAND", score_label), Paragraph(overall_band, score_style)]],
+        colWidths=[55 * mm, 40 * mm],
+        rowHeights=[22 * mm],
+        hAlign="CENTER",
+    )
+    score_card.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), PALE_CORAL),
+                ("BOX", (0, 0), (-1, -1), 0.8, colors.HexColor("#F3C8BB")),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ]
+        )
+    )
+    story.extend([score_card, Spacer(1, 8 * mm)])
+
+    metadata = Table(
+        [[
+            Paragraph(f"TASK<br/><b>{inline_markup(task_type)}</b>", meta),
+            Paragraph(f"WORDS<br/><b>{inline_markup(word_count)}</b>", meta),
+            Paragraph(f"CREATED<br/><b>{inline_markup(created_at)}</b>", meta),
+        ]],
+        colWidths=[50 * mm, 40 * mm, 60 * mm],
+        hAlign="CENTER",
+    )
+    metadata.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), PALE_BLUE),
+                ("BOX", (0, 0), (-1, -1), 0.5, RULE),
+                ("INNERGRID", (0, 0), (-1, -1), 0.5, RULE),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("TOPPADDING", (0, 0), (-1, -1), 8),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ]
+        )
+    )
+    story.extend(
+        [
+            metadata,
+            Spacer(1, 11 * mm),
+            Paragraph("ESSAY QUESTION", subheading),
+            HRFlowable(width="100%", thickness=1.2, color=CORAL, spaceAfter=7),
+            Paragraph(inline_markup(question), question_style),
+            PageBreak(),
+            Paragraph("Original Essay", heading),
+            HRFlowable(width="100%", thickness=1, color=RULE, spaceAfter=9),
+        ]
+    )
+    for paragraph in re.split(r"\n\s*\n", essay):
+        if paragraph.strip():
+            story.append(Paragraph(inline_markup(paragraph), essay_style))
+    story.extend([PageBreak(), Paragraph("Examiner Feedback", heading)])
+
+    lines = report.splitlines()
+    index = 0
+    while index < len(lines):
+        line = lines[index].strip()
         if not line:
-            story.append(Spacer(1, 3 * mm))
+            index += 1
             continue
         if line == "---":
-            story.append(Spacer(1, 2 * mm))
+            story.append(HRFlowable(width="100%", thickness=0.7, color=RULE, spaceBefore=5, spaceAfter=8))
+            index += 1
             continue
-
-        plain = re.sub(r"[*_`]", "", line)
-        if plain.startswith("# "):
-            story.append(Paragraph(escape(plain[2:]), title))
-        elif plain.startswith("## "):
-            story.append(Paragraph(escape(plain[3:]), heading))
-        elif plain.startswith("### "):
-            story.append(Paragraph(escape(plain[4:]), heading))
-        elif plain.startswith(("- ", "* ")):
-            story.append(Paragraph(f"• {escape(plain[2:])}", body))
+        if line.startswith("|"):
+            table_lines = []
+            while index < len(lines) and lines[index].strip().startswith("|"):
+                table_lines.append(lines[index].strip())
+                index += 1
+            rows = [
+                [cell.strip() for cell in row.strip("|").split("|")]
+                for row in table_lines
+                if not re.fullmatch(r"\|?[\s:|-]+\|?", row)
+            ]
+            if rows:
+                column_count = max(len(row) for row in rows)
+                wrapped = []
+                for row_index, row in enumerate(rows):
+                    padded = row + [""] * (column_count - len(row))
+                    cell_style = table_header if row_index == 0 else table_cell
+                    wrapped.append(
+                        [Paragraph(inline_markup(cell), cell_style) for cell in padded]
+                    )
+                table = Table(
+                    wrapped,
+                    colWidths=[document.width / column_count] * column_count,
+                    repeatRows=1,
+                    hAlign="LEFT",
+                )
+                table.setStyle(TableStyle([
+                    ("BACKGROUND", (0, 0), (-1, 0), TEAL),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("BACKGROUND", (0, 1), (-1, -1), WARM_WHITE),
+                    ("GRID", (0, 0), (-1, -1), 0.45, RULE),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                    ("TOPPADDING", (0, 0), (-1, -1), 5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ]))
+                story.extend([table, Spacer(1, 3 * mm)])
+            continue
+        if line.startswith("### "):
+            story.append(Paragraph(inline_markup(line[4:]), subheading))
+        elif line.startswith("## "):
+            story.extend([
+                Paragraph(inline_markup(line[3:]), heading),
+                HRFlowable(width="100%", thickness=1, color=CORAL, spaceAfter=7),
+            ])
+        elif line.startswith("# "):
+            if "IELTS Writing Examiner Report" not in line:
+                story.append(Paragraph(inline_markup(line[2:]), heading))
+        elif line.startswith(">"):
+            story.append(Paragraph(inline_markup(line.lstrip("> ")), quote_style))
+        elif re.match(r"^[-*]\s+", line):
+            story.append(Paragraph(f"<font color='#E87961'>●</font>&nbsp;&nbsp;{inline_markup(line[2:])}", body))
         else:
-            story.append(Paragraph(escape(plain), body))
+            story.append(Paragraph(inline_markup(line), body))
+        index += 1
 
-    document.build(story)
+    def draw_page(canvas, doc) -> None:
+        canvas.saveState()
+        canvas.setFont("NotoSansSC", 7.5)
+        canvas.setFillColor(MUTED)
+        canvas.drawString(20 * mm, 11 * mm, "IELTS Writing Correction Skill")
+        canvas.drawRightString(A4[0] - 20 * mm, 11 * mm, f"Page {doc.page}")
+        canvas.setStrokeColor(RULE)
+        canvas.setLineWidth(0.5)
+        canvas.line(20 * mm, 15 * mm, A4[0] - 20 * mm, 15 * mm)
+        canvas.restoreState()
+
+    document.build(story, onFirstPage=draw_page, onLaterPages=draw_page)
     return buffer.getvalue()
 
 
@@ -145,6 +424,9 @@ def save_markdown_record(
     parsed_result = parsed_result or {}
     parsed_data = parsed_result.get("data", {}) if parsed_result.get("ok") else {}
     overall_band = parse_band(parsed_data.get("overall_band"))
+    if overall_band is None:
+        score_match = SCORE_PATTERN.search(report)
+        overall_band = parse_band(score_match.group(1)) if score_match else None
     criteria_scores = parsed_data.get("criteria_scores", {})
     if not isinstance(criteria_scores, dict):
         criteria_scores = {}
