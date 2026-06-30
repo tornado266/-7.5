@@ -13,11 +13,12 @@ EssayPilot is a Streamlit workspace for IELTS Writing Task 2 practice. It turns 
 ## Product Highlights
 
 - **Four-criterion scoring** for Task Response, Coherence and Cohesion, Lexical Resource, and Grammatical Range and Accuracy.
-- **Evidence-based diagnosis** grounded in sentences from the student's own essay.
-- **Actionable rewriting practice** at both sentence and paragraph-logic level.
+- **Strength-and-weakness evidence** for every criterion, grounded in the student's own writing.
+- **Active rewriting practice** at both sentence and paragraph-logic level; students write before receiving feedback.
+- **Chinese coaching feedback** that explains what improved, what remains weak, and how to reach Band 6.5+.
 - **Band 7 reference material** including improved language, useful expressions, and model rewrites.
 - **Markdown and polished PDF export** containing the question, original essay, score, and complete feedback.
-- **Progress tracking** with a fixed IELTS band chart for recent saved attempts.
+- **Progress tracking** with a fixed 3-9 IELTS band chart for recent saved attempts.
 
 ## Product Tour
 
@@ -27,13 +28,49 @@ The report begins with the estimated overall band and a separate score card for 
 
 ![Overall band and IELTS criteria](screenshots/report-overview.png)
 
-### 2. Full examiner feedback
+### 2. Criterion-level diagnosis
+
+Each IELTS criterion can be expanded independently. The dashboard separates evidence that helps the score from the main issue that limits the next band.
+
+![Criterion strengths and weaknesses](screenshots/criteria-details.png)
+
+### 3. Full examiner feedback
 
 Detailed feedback is kept in a collapsible report so the dashboard remains easy to scan while preserving the complete analysis.
 
 ![Detailed examiner feedback](screenshots/detailed-feedback.png)
 
-### 3. Downloadable learning record
+### 4. A workspace that moves from report to practice
+
+The report, sentence practice, logic check, and score history are separate collapsible areas. Students can focus on one learning task at a time while the progress chart keeps recent attempts comparable on a fixed 3-9 band scale.
+
+![Practice modules and IELTS band history](screenshots/history-and-modules.png)
+
+### 5. Sentence-level score improvement
+
+EssayPilot extracts weak sentences and asks the student to rewrite them. A reference answer is available, but the main workflow encourages the student to attempt the correction first.
+
+![Sentence rewriting practice](screenshots/sentence-practice.png)
+
+After submission, the AI gives concise Chinese feedback, an estimated level, a more natural Band 6.5-7 version, and reusable language patterns.
+
+![AI review of a sentence rewrite](screenshots/sentence-feedback.png)
+
+### 6. Logic and paragraph development
+
+The logic check targets higher-level problems such as vague claims, shallow explanation, unsupported examples, and weak paragraph progression. Each task includes the original passage and a concrete rewriting constraint.
+
+![Paragraph logic rewriting task](screenshots/logic-practice.png)
+
+The comparison step checks whether the rewrite is clearer and closer to Band 6.5+. If the student submits an incomplete rewrite, the system explains why the logic cannot yet be evaluated.
+
+![Logic comparison feedback](screenshots/logic-feedback-summary.png)
+
+It then converts the weakness into a practical rewrite plan: retain the claim, deepen the explanation, strengthen the example, and reconnect the paragraph to the position.
+
+![Detailed logic improvement guidance](screenshots/logic-feedback-guidance.png)
+
+### 7. Downloadable learning record
 
 Every completed correction can be exported as Markdown or as a styled, bilingual PDF report.
 
@@ -45,10 +82,14 @@ Every completed correction can be exported as Markdown or as a styled, bilingual
 flowchart LR
     A[Essay question and response] --> B[IELTS examiner prompt]
     B --> C[DeepSeek or OpenAI]
-    C --> D[Band scores and feedback]
-    D --> E[Rewrite practice]
-    D --> F[Markdown and PDF export]
-    D --> G[Progress history]
+    C --> D[Band scores and evidence]
+    D --> E[Sentence rewrite]
+    D --> F[Logic rewrite]
+    E --> G[Chinese AI review]
+    F --> G
+    G --> H[Next revision]
+    D --> I[Markdown and PDF]
+    D --> J[Progress history]
 ```
 
 The provider response is parsed defensively. When structured parsing is not possible, EssayPilot keeps the raw examiner report available instead of crashing the interface.
@@ -59,9 +100,23 @@ The provider response is parsed defensively. When structured parsing is not poss
 2. Paste the student's essay and review the word count.
 3. Select an AI provider and run the examiner.
 4. Review the overall band and four criterion scores.
-5. Expand the full report for evidence, corrections, and improvement priorities.
-6. Complete the sentence and logic rewriting exercises.
-7. Export the complete learning record as Markdown or PDF.
+5. Expand criterion details to compare strengths with the main score-limiting issue.
+6. Read the full report for evidence, corrections, and improvement priorities.
+7. Rewrite selected weak sentences and request targeted Chinese feedback.
+8. Rewrite a key paragraph to improve claim, explanation, example, and progression.
+9. Review the comparison feedback and revise again when needed.
+10. Export the complete learning record as Markdown or PDF.
+
+## Learning Design
+
+EssayPilot follows a short deliberate-practice loop:
+
+1. **Diagnose:** identify the criterion and the exact sentence or paragraph holding the score back.
+2. **Rewrite:** require the student to produce a new version instead of passively reading corrections.
+3. **Compare:** evaluate the rewrite against the original and a Band 6.5-7 target.
+4. **Transfer:** extract a reusable sentence pattern or paragraph strategy for the next essay.
+
+This keeps the examiner report useful without turning the product into a one-click essay replacement tool.
 
 ## Tech Stack
 
