@@ -1,123 +1,89 @@
-# IELTS Writing AI Examiner
+# EssayPilot
 
-## 🚀 Live Demo
+### AI-assisted IELTS Writing feedback, revision, and progress tracking
 
-Try it here: https://xbz4ydgw2t6cm2ytkh79vq.streamlit.app/
-A Streamlit IELTS Writing Task 2 examiner that uses DeepSeek to return structured scoring, feedback, rewrite suggestions, and local progress history.
+[Open the live app](https://xbz4ydgw2t6cm2ytkh79vq.streamlit.app/) | [View the repository](https://github.com/tornado266/EssayPilot)
 
-## What It Does
+EssayPilot is a Streamlit workspace for IELTS Writing Task 2 practice. It turns an essay into criterion-level band estimates, evidence-based feedback, guided rewriting tasks, and portable Markdown/PDF reports.
 
-- Uses the DeepSeek API through `requests.post`.
-- Returns structured IELTS scoring when the model provides valid JSON.
-- Shows Overall Band Score and four criteria scores.
-- Gives concrete feedback with quoted student sentences.
-- Produces sentence-level corrections, a Band 7.5 rewrite, useful expressions, and a next practice plan.
-- Saves local history records with raw AI output and structured metadata.
-- Shows a progress trend when at least two scored essays are available.
-- Includes a sidebar `Test DeepSeek Connection` check with latency.
-- Falls back safely to the raw examiner report if structured parsing fails.
+> EssayPilot is a practice tool, not an official IELTS score report.
 
-## Screenshot
+![EssayPilot writing workspace](screenshots/dashboard.png)
 
-Place screenshots here before publishing the project:
+## Product Highlights
 
-```text
-screenshots/
-  dashboard.png
-  report.png
-  history.png
-```
+- **Four-criterion scoring** for Task Response, Coherence and Cohesion, Lexical Resource, and Grammatical Range and Accuracy.
+- **Evidence-based diagnosis** grounded in sentences from the student's own essay.
+- **Actionable rewriting practice** at both sentence and paragraph-logic level.
+- **Band 7 reference material** including improved language, useful expressions, and model rewrites.
+- **Markdown and polished PDF export** containing the question, original essay, score, and complete feedback.
+- **Progress tracking** with a fixed IELTS band chart for recent saved attempts.
 
-Suggested first screenshot: the main Streamlit workspace after a completed essay correction.
+## Product Tour
+
+### 1. Score overview
+
+The report begins with the estimated overall band and a separate score card for each IELTS criterion.
+
+![Overall band and IELTS criteria](screenshots/report-overview.png)
+
+### 2. Full examiner feedback
+
+Detailed feedback is kept in a collapsible report so the dashboard remains easy to scan while preserving the complete analysis.
+
+![Detailed examiner feedback](screenshots/detailed-feedback.png)
+
+### 3. Downloadable learning record
+
+Every completed correction can be exported as Markdown or as a styled, bilingual PDF report.
+
+![Markdown and PDF report downloads](screenshots/report-downloads.png)
 
 ## How It Works
 
-```text
-Essay Question + Student Essay
-        |
-        v
-Streamlit Input Form
-        |
-        v
-IELTS Examiner Prompt
-        |
-        v
-DeepSeek API request with requests.post
-        |
-        v
-Score Cards + Structured Feedback + Local Markdown/JSON History
+```mermaid
+flowchart LR
+    A[Essay question and response] --> B[IELTS examiner prompt]
+    B --> C[DeepSeek or OpenAI]
+    C --> D[Band scores and feedback]
+    D --> E[Rewrite practice]
+    D --> F[Markdown and PDF export]
+    D --> G[Progress history]
 ```
 
-## Features
+The provider response is parsed defensively. When structured parsing is not possible, EssayPilot keeps the raw examiner report available instead of crashing the interface.
 
-- Task 2 question and essay input
-- Overall band score and four criteria scores
-- Word count warning for IELTS minimum requirements
-- Main problems with quoted original sentences
-- Sentence-level corrections
-- Band 7.5 rewrite
-- Useful expressions for review
-- Next practice plan
-- Local history trend chart
-- Error book saved to `records/error_book.md`
-- Sidebar DeepSeek connection test with latency
-- Raw report fallback when JSON parsing fails
+## Feedback Workflow
 
-## Example Input
+1. Paste the IELTS Writing Task 2 question.
+2. Paste the student's essay and review the word count.
+3. Select an AI provider and run the examiner.
+4. Review the overall band and four criterion scores.
+5. Expand the full report for evidence, corrections, and improvement priorities.
+6. Complete the sentence and logic rewriting exercises.
+7. Export the complete learning record as Markdown or PDF.
 
-Essay question:
+## Tech Stack
 
-```text
-Some people believe that university students should study whatever they like.
-Others believe they should only study subjects that will be useful in the future,
-such as science and technology.
+| Layer | Technology |
+| --- | --- |
+| UI | Streamlit |
+| AI providers | DeepSeek and optional OpenAI |
+| Provider client | OpenAI Python SDK with configurable base URL |
+| Charts | Altair and pandas |
+| Report export | ReportLab with an embedded Noto Sans SC font |
+| Persistence | Local Markdown and JSON records |
 
-Discuss both views and give your own opinion.
-```
+## Quick Start
 
-Student essay:
-
-```text
-Some people think students should choose any subject they enjoy, while others
-believe they should study useful subjects. I think students should consider both
-their interest and future job opportunities.
-```
-
-## Example Output
-
-The app asks the model for JSON in this shape:
-
-```text
-{
-  "overall_band": 6.0,
-  "criteria_scores": {
-    "task_response": 6.0,
-    "coherence_and_cohesion": 6.5,
-    "lexical_resource": 6.0,
-    "grammatical_range_and_accuracy": 6.0
-  },
-  "top_3_problems": [],
-  "sentence_level_corrections": [],
-  "band_75_rewrite": "",
-  "useful_expressions": [],
-  "next_practice_plan": []
-}
-```
-
-Actual output depends on the essay length, quality, and the AI model response.
-
-## Setup
-
-### 1. Clone and enter the project
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/tornado266/-7.5.git
-cd ielts-writing-skill
+git clone https://github.com/tornado266/EssayPilot.git
+cd EssayPilot
 ```
 
-If you downloaded the project as a ZIP file, just open the extracted project folder.
-
-### 2. Create a virtual environment
+### 2. Create and activate a virtual environment
 
 Windows PowerShell:
 
@@ -139,116 +105,69 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. Add your DeepSeek API key
+### 4. Configure a provider
 
-Create a `.env` file in the project root:
+Create a local `.env` file:
 
-```text
-DEEPSEEK_API_KEY=your_deepseek_api_key_here
-DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
+```dotenv
+DEEPSEEK_API_KEY=your_deepseek_api_key
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+
+# Optional
+OPENAI_API_KEY=your_openai_api_key
 ```
 
-The DeepSeek grading request currently uses:
+The app reads Streamlit Secrets first and falls back to environment variables for local development.
 
-```text
-POST https://api.deepseek.com/v1/chat/completions
-```
-
-through `requests.post`.
-
-The app reads Streamlit Secrets first and falls back to local environment variables,
-so a local `.env` file is only used during development.
-
-### 5. Run the app
-
-Preferred launcher:
-
-```bash
-python start.py
-```
-
-Or run Streamlit directly:
+### 5. Run EssayPilot
 
 ```bash
 streamlit run app.py
 ```
 
-Open the local URL shown in the terminal, usually:
+Then open `http://localhost:8501`.
 
-```text
-http://localhost:8501
-```
+## Deploy on Streamlit Community Cloud
 
-## Deploy To Streamlit Community Cloud
-
-1. Push this repository to GitHub.
-2. Open [Streamlit Community Cloud](https://share.streamlit.io/) and create an app.
-3. Select repository `tornado266/-7.5`, branch `main`, and entrypoint `app.py`.
-4. Open **Advanced settings** and add the following Secrets:
+1. Fork or push the repository to GitHub.
+2. Create a new app in [Streamlit Community Cloud](https://share.streamlit.io/).
+3. Select the `main` branch and `app.py` entrypoint.
+4. Add provider credentials under **App settings > Secrets**:
 
 ```toml
-DEEPSEEK_API_KEY = "your_deepseek_api_key_here"
+DEEPSEEK_API_KEY = "your_deepseek_api_key"
 DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
-# Optional, only when using the OpenAI provider.
-OPENAI_API_KEY = "your_openai_api_key_here"
+# Optional
+OPENAI_API_KEY = "your_openai_api_key"
 ```
 
-5. Keep the default supported Python version and click **Deploy**.
-
-Never commit `.streamlit/secrets.toml` or `.env`. Both are excluded by
-`.gitignore`. Files written under `records/` on Community Cloud are ephemeral and
-may be cleared when the app restarts.
-
-## Recommended Demo Flow
-
-1. Start Streamlit.
-2. Click `Test DeepSeek Connection` in the sidebar.
-3. Paste an IELTS question and essay.
-4. Click `Grade My Essay`.
-5. Review the score cards, structured feedback, saved record, and history trend.
+Never commit `.env` or `.streamlit/secrets.toml`.
 
 ## Project Structure
 
 ```text
-ielts-writing-skill/
-  app.py
-  requirements.txt
-  README.md
-  src/
-    ai_grader.py
-    error_book.py
-    prompts.py
-    result_parser.py
-    storage.py
-    text_utils.py
-  records/
-  screenshots/
+EssayPilot/
+|-- app.py                    # Streamlit presentation layer
+|-- requirements.txt
+|-- assets/                   # Background and embedded PDF font
+|-- screenshots/              # README product screenshots
+|-- records/                  # Local correction history
+`-- src/
+    |-- ai_grader.py          # Provider configuration and requests
+    |-- prompts.py            # IELTS examiner and rewrite prompts
+    |-- result_parser.py      # Defensive structured parsing
+    |-- storage.py            # Markdown, JSON, and PDF exports
+    |-- error_book.py         # Error-book generation
+    `-- text_utils.py
 ```
 
-## FAQ
+## Data and Deployment Notes
 
-### Why does the API key not work?
+- API keys are loaded from Streamlit Secrets or local environment variables and are never written into report files.
+- Records stored on Streamlit Community Cloud are ephemeral and may be cleared when the app restarts.
+- AI scoring is probabilistic. Use repeated practice and criterion trends rather than treating one result as an official score.
 
-Check that `.env` is in the project root and contains `DEEPSEEK_API_KEY`. After editing `.env`, restart Streamlit so the app reloads the key.
+## License
 
-### Why does the request fail even though the page opens?
-
-The page can load even if the AI API request fails. Use `Test DeepSeek Connection` in the sidebar. Also check your network, DeepSeek account balance, and whether port `8501` is already occupied by another Streamlit process.
-
-### Why is the score not always exactly the same?
-
-AI scoring is probabilistic. The report should be treated as guided practice feedback, not an official IELTS result. For more stable practice, compare trends across several essays instead of relying on one score.
-
-### Why does the page look strange in the browser?
-
-Browser translation plugins can modify Streamlit text and layout. Turn off translation for `localhost` if buttons or labels behave unexpectedly.
-
-## Tech Stack
-
-- Python
-- Streamlit
-- DeepSeek API
-- `requests.post` for DeepSeek grading
-- OpenAI Python SDK for optional OpenAI provider
-- Local Markdown and JSON files for history
+This repository is intended for learning, portfolio demonstration, and IELTS writing practice. The bundled Noto Sans SC font is distributed under the SIL Open Font License 1.1.
