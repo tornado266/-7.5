@@ -104,6 +104,17 @@ def build_client(provider: str) -> OpenAI:
     return OpenAI(api_key=api_key)
 
 
+def completion_options(
+    provider: str,
+    model: str,
+    max_output_tokens: int,
+) -> dict[str, int | float]:
+    """Return output controls supported by the selected provider and model."""
+    if provider == "OpenAI" and model.lower().startswith("gpt-5"):
+        return {"max_completion_tokens": max_output_tokens}
+    return {"temperature": 0.2, "max_tokens": max_output_tokens}
+
+
 def grade_essay(provider: str, task_type: str, topic: str, essay: str, model: str) -> str:
     """Send the IELTS essay to an AI provider and return a markdown correction report."""
     _, api_key, base_url = get_provider_config(provider)
@@ -125,8 +136,7 @@ def grade_essay(provider: str, task_type: str, topic: str, essay: str, model: st
                 },
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.2,
-            max_tokens=8000,
+            **completion_options(provider, model, 8000),
         )
     except APIStatusError as exc:
         raise AIGraderError(
@@ -197,8 +207,7 @@ Student essay:
                     },
                     {"role": "user", "content": fallback_prompt},
                 ],
-                temperature=0.2,
-                max_tokens=1600,
+                **completion_options(provider, model, 1600),
             )
             extra_section = fallback_response.choices[0].message.content or ""
             if extra_section.strip():
@@ -263,8 +272,7 @@ Student essay:
                     },
                     {"role": "user", "content": logic_prompt},
                 ],
-                temperature=0.2,
-                max_tokens=1800,
+                **completion_options(provider, model, 1800),
             )
             logic_section = logic_response.choices[0].message.content or ""
             if logic_section.strip():
@@ -336,8 +344,7 @@ Rules:
                 },
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.2,
-            max_tokens=900,
+            **completion_options(provider, model, 900),
         )
     except APIStatusError as exc:
         raise AIGraderError(
@@ -426,8 +433,7 @@ Rules:
                 },
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.2,
-            max_tokens=1000,
+            **completion_options(provider, model, 1000),
         )
     except APIStatusError as exc:
         raise AIGraderError(
