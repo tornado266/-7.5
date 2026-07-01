@@ -2,6 +2,7 @@
 
 import base64
 import hashlib
+import math
 import re
 from pathlib import Path
 
@@ -369,6 +370,20 @@ def extract_criteria_scores(markdown: str) -> dict[str, str]:
             scores["Grammar"] = likely_score
 
     return scores
+
+
+def calculate_conservative_overall(markdown: str) -> float | None:
+    """Calculate the displayed band from four criteria with downward half-band rounding."""
+    criteria = extract_criteria_scores(markdown)
+    numeric_scores: list[float] = []
+    for value in criteria.values():
+        match = re.search(r"\d(?:\.\d)?", value)
+        if not match:
+            return extract_overall_score(markdown)
+        numeric_scores.append(float(match.group(0)))
+
+    average = sum(numeric_scores) / len(numeric_scores)
+    return math.floor((average + 1e-9) * 2) / 2
 
 
 def extract_criteria_details(markdown: str) -> dict[str, dict[str, str]]:
@@ -865,7 +880,7 @@ def list_correction_history() -> list[dict[str, object]]:
                 "created_at": created_match.group(1) if created_match else path.stem,
                 "task_type": task_match.group(1) if task_match else "Unknown",
                 "word_count": int(words_match.group(1)) if words_match else None,
-                "score": extract_overall_score(markdown),
+                "score": calculate_conservative_overall(markdown),
             }
         )
 
@@ -1061,7 +1076,7 @@ with st.container():
                     )
 
     if st.session_state.latest_report:
-        score = extract_overall_score(st.session_state.latest_report)
+        score = calculate_conservative_overall(st.session_state.latest_report)
 
         tab_report, tab_files = st.tabs(["Report", "Saved Files"])
         with tab_report:

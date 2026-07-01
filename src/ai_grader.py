@@ -108,10 +108,13 @@ def completion_options(
     provider: str,
     model: str,
     max_output_tokens: int,
-) -> dict[str, int | float]:
+) -> dict[str, int | float | str]:
     """Return output controls supported by the selected provider and model."""
     if provider == "OpenAI" and model.lower().startswith("gpt-5"):
-        return {"max_completion_tokens": max_output_tokens}
+        return {
+            "max_completion_tokens": max_output_tokens,
+            "reasoning_effort": "medium",
+        }
     return {"temperature": 0.2, "max_tokens": max_output_tokens}
 
 

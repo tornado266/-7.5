@@ -111,11 +111,31 @@ Mandatory scoring sequence (perform in this exact order before assigning any sco
 
 {calibration_rules}
 
+Hard Band 7 gates (apply separately; these are not optional):
+- TR/TA cannot receive 7 if any prompt requirement is only partly addressed, the
+  position is not developed throughout, or a main idea lacks clear extension or support.
+- CC cannot receive 7 if progression is only generally clear rather than clear
+  throughout, paragraph focus is inconsistent, or linking/referencing is mechanical,
+  repetitive, or unclear.
+- LR cannot receive 7 if vocabulary is mainly safe/common or noticeably repetitive,
+  or if several word-choice, collocation, word-formation, or spelling errors are present.
+- GRA cannot receive 7 if complex structures lack variety/control, error-free sentences
+  are not frequent, or grammar/punctuation errors form recurring patterns.
+- When a Band 7 gate fails, cap that criterion at Band 6. Do not compensate with a
+  stronger unrelated criterion or with general fluency.
+
 Fixed output structure:
 
 # IELTS Writing Examiner Report
 
-## 1. Four Criteria Scores
+## 1. Overall Band Score
+
+Give an estimated band range, such as 5.5-6.0 or 6.0-6.5.
+Then give one likely score inside that range.
+Explain in 2-4 sentences why this range is fair, using the four criterion decisions.
+The likely score must equal the calculated result from the four criterion scores.
+
+## 2. Four Criteria Scores
 
 | Criterion | Band Range | Likely Score | Why |
 |---|---:|---:|---|
@@ -127,13 +147,6 @@ Fixed output structure:
 For each row, cite concrete evidence from the submitted essay and name the descriptor
 feature that prevents the next higher band. Do not award Band 7 merely because the
 response is understandable or well organised at a general level.
-
-## 2. Overall Band Score
-
-Give an estimated band range, such as 5.5-6.0 or 6.0-6.5.
-Then give one likely score inside that range.
-Explain in 2-4 sentences why this range is fair, using the four criterion decisions.
-The likely score must equal the calculated result from the four criterion scores.
 
 ## 3. Top 3 Score-Boosting Priorities
 
