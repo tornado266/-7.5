@@ -32,15 +32,15 @@ SAMPLE_TOPIC = (
     "subjects, while others think they should also study other subjects. "
     "Discuss both views and give your own opinion."
 )
-SAMPLE_ESSAY = """Nowadays, there is a debate about whether university students should focus only on their major or learn some other subjects as well. Both choices have advantages, but I believe students should mainly study their major while taking a small number of other useful courses.
+SAMPLE_ESSAY = """Nowadays, university students need to study many courses. Some people think they should only learn their main subject, but other people think they should study other subjects too. This question has advantages on both sides. I think the main subject is more important, although students can choose some other courses.
 
-On the one hand, concentrating on one subject can help students gain deeper knowledge. University courses are often difficult and students have limited time. For example, a computer science student needs to spend many hours learning programming, mathematics and completing projects. If this student also takes too many unrelated classes, it may be hard to develop strong professional skills. Therefore, focusing on the major can prepare students better for their future career.
+On the one hand, students can improve their professional ability when they only focus on the major. University study is difficult and there is not much time. For example, computer science students need to learn programming and mathematics. These courses take many time and students must practise them often. If they also study art, history and other subjects, they may become busy and cannot study their main courses well. Therefore, focusing on the major is good for their future job.
 
-On the other hand, studying different subjects can make students more well-rounded. In modern workplaces, people often need skills from several areas. A business student who learns basic technology may communicate better with software developers, while an engineering student who studies communication can present ideas more clearly. Other subjects can also make university life more interesting and help students discover new interests.
+On the other hand, other subjects are also useful for students. People need different knowledge in modern society. For example, business knowledge can help an engineering student in future. Also, art and history can make university life more interesting. Students can meet different ideas and this is good for their thinking. However, these benefits are general, and some other courses may not help students to find a job.
 
-In my opinion, the best choice is to find a balance. Students should spend most of their time on their main subject because it is the foundation of their career. However, universities should allow them to choose one or two additional courses that support their goals or personal interests. This approach gives students specialist knowledge without making their education too narrow.
+In my opinion, universities should give most time to the major subject. Also, they should let students choose one or two other course. This can make a balance and students can get professional knowledge and other knowledge. If there are too many courses, students will feel pressure, so the number should not be too much. This plan is suitable for most students.
 
-In conclusion, focusing on a major develops professional ability, whereas studying other subjects provides broader skills. I believe a balanced programme, with the major as the priority, is the most practical option for university students."""
+In conclusion, only studying the main subject can help students prepare for their career, while other subjects give them more knowledge. I believe students should mainly learn their major and study a small number of other subjects."""
 
 
 def load_sample_essay() -> None:
