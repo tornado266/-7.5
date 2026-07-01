@@ -943,7 +943,11 @@ with st.sidebar:
     task_type = st.radio("IELTS task type", ["Task 2", "Task 1"], horizontal=True)
     provider = st.selectbox("AI provider", ["DeepSeek", "OpenAI"])
     default_model = "deepseek-chat" if provider == "DeepSeek" else "gpt-5.4-mini"
-    model = st.text_input("Model", value=default_model)
+    model = st.text_input(
+        "Model",
+        value=default_model,
+        key=f"model_{provider.lower()}",
+    )
     st.info(
         "Add API keys in Streamlit Secrets for deployment, or use a local .env file."
     )
