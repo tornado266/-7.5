@@ -113,7 +113,7 @@ def completion_options(
     if provider == "OpenAI" and model.lower().startswith("gpt-5"):
         return {
             "max_completion_tokens": max_output_tokens,
-            "reasoning_effort": "medium",
+            "reasoning_effort": "low",
         }
     return {"temperature": 0.2, "max_tokens": max_output_tokens}
 
