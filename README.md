@@ -6,6 +6,8 @@
 
 EssayPilot is a Streamlit workspace for IELTS Writing Task 2 practice. It turns an essay into criterion-level band estimates, evidence-based feedback, guided rewriting tasks, and portable Markdown/PDF reports.
 
+EssayPilot supports a private developer dashboard for tracking anonymous usage statistics. Access is protected by the `ADMIN_PASSWORD` Streamlit secret, and analytics records do not contain essay text.
+
 > EssayPilot is a practice tool, not an official IELTS score report.
 
 ![EssayPilot writing workspace](screenshots/dashboard.png)
