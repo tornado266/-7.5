@@ -2,7 +2,6 @@
 
 import base64
 import hashlib
-import hmac
 import math
 import re
 import uuid
@@ -15,12 +14,12 @@ from dotenv import load_dotenv
 
 from src.ai_grader import (
     AIGraderError,
-    get_runtime_setting,
     grade_essay,
     review_logic_rewrite,
     review_sentence_rewrite,
 )
-from src.analytics import load_analytics, record_grading_event
+from src.admin_dashboard import is_admin_request, render_admin_dashboard
+from src.analytics import record_grading_event
 from src.error_book import append_error_book
 from src.storage import markdown_to_pdf, save_markdown_record
 from src.text_utils import count_words, word_count_warning
@@ -241,6 +240,10 @@ user_id = st.session_state.user_id
 
 inject_page_style()
 
+if is_admin_request():
+    render_admin_dashboard()
+    st.stop()
+
 
 def show_markdown_file(path: Path) -> None:
     """Offer the complete record as Markdown and PDF downloads."""
@@ -393,53 +396,6 @@ def calculate_overall_band(markdown: str) -> float | None:
 
     average = sum(numeric_scores) / len(numeric_scores)
     return math.floor(average * 2 + 0.5) / 2
-
-
-def render_admin_dashboard() -> None:
-    """Render the password-protected anonymous usage dashboard."""
-    st.title("EssayPilot Developer Dashboard")
-    expected_password = get_runtime_setting("ADMIN_PASSWORD")
-    if not expected_password:
-        st.error("ADMIN_PASSWORD is not configured in Streamlit Secrets.")
-        return
-
-    if not st.session_state.get("admin_authenticated"):
-        password = st.text_input("Admin password", type="password")
-        if not password:
-            st.info("Enter the developer password to view anonymous usage statistics.")
-            return
-        if not hmac.compare_digest(password, expected_password):
-            st.error("Incorrect password.")
-            return
-        st.session_state.admin_authenticated = True
-
-    analytics = load_analytics()
-    first_row = st.columns(3)
-    first_row[0].metric("Total Users", analytics["total_users"])
-    first_row[1].metric("Total Essays", analytics["total_essays"])
-    first_row[2].metric("Essays Today", analytics["essays_today"])
-    second_row = st.columns(3)
-    second_row[0].metric("API Calls", analytics["total_api_calls"])
-    average_band = analytics["average_band"]
-    average_words = analytics["average_word_count"]
-    second_row[1].metric("Average Band", f"{average_band:.2f}" if average_band is not None else "-")
-    second_row[2].metric("Average Word Count", f"{average_words:.0f}" if average_words is not None else "-")
-
-    st.subheader("Recent Activity")
-    recent_rows = [
-        {
-            "Time": event.get("timestamp", ""),
-            "Band": event.get("overall_band"),
-            "Words": event.get("essay_word_count"),
-            "User ID": event.get("user_id", ""),
-            "Model": event.get("model_name", ""),
-        }
-        for event in analytics["recent_activity"]
-    ]
-    if recent_rows:
-        st.dataframe(recent_rows, width="stretch", hide_index=True)
-    else:
-        st.info("No grading activity has been recorded yet.")
 
 
 def extract_criteria_details(markdown: str) -> dict[str, dict[str, str]]:
@@ -1017,11 +973,6 @@ def render_history(user_id: str) -> None:
     )
     st.altair_chart(trend_chart, width="stretch")
     st.caption("Showing the latest 10 saved correction records with extractable scores.")
-
-
-if st.query_params.get("admin") == "1":
-    render_admin_dashboard()
-    st.stop()
 
 
 title_column, sample_column = st.columns([5, 1], vertical_alignment="top")
