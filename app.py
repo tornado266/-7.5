@@ -304,7 +304,7 @@ def get_band_color(score: float | None) -> tuple[str, str]:
 
 def extract_report_section(markdown: str, number: int) -> str:
     """Safely extract a numbered report section from Markdown."""
-    heading = rf"#{1,3}\s*{number}\s*[.:、-]?\s+"
+    heading = rf"#{{1,3}}\s*{number}\s*[.:、-]?\s+"
     next_heading = r"\n#{1,3}\s*\d+\s*[.:、-]?\s+"
     match = re.search(
         rf"{heading}.*?(?={next_heading}|\Z)",
