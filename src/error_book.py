@@ -1,4 +1,5 @@
 import re
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -50,9 +51,23 @@ def categorize_errors(text: str) -> dict[str, list[str]]:
     return categories
 
 
-def append_error_book(task_type: str, topic: str, report: str) -> Path:
+def append_error_book(
+    task_type: str,
+    topic: str,
+    report: str,
+    user_id: str | None = None,
+) -> Path:
     """Append grammar, vocabulary, logic, and structure errors to the error book."""
-    ERROR_BOOK_PATH.parent.mkdir(exist_ok=True)
+    if user_id is None:
+        error_book_path = ERROR_BOOK_PATH
+    else:
+        try:
+            normalized_user_id = str(uuid.UUID(user_id))
+        except (ValueError, AttributeError, TypeError) as exc:
+            raise ValueError("user_id must be a valid UUID") from exc
+        error_book_path = ERROR_BOOK_PATH.parent / normalized_user_id / "error_book.md"
+
+    error_book_path.parent.mkdir(parents=True, exist_ok=True)
     extracted = extract_error_sections(report)
     categories = categorize_errors(extracted)
     created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -76,9 +91,9 @@ def append_error_book(task_type: str, topic: str, report: str) -> Path:
                 parts.append("- No clear item extracted from this report.")
             parts.append("")
 
-    with ERROR_BOOK_PATH.open("a", encoding="utf-8") as file:
-        if ERROR_BOOK_PATH.stat().st_size == 0:
+    with error_book_path.open("a", encoding="utf-8") as file:
+        if error_book_path.stat().st_size == 0:
             file.write("# IELTS Writing Error Book\n")
         file.write("\n".join(parts).strip() + "\n")
 
-    return ERROR_BOOK_PATH
+    return error_book_path

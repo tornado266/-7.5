@@ -4,6 +4,7 @@ import base64
 import hashlib
 import math
 import re
+import uuid
 from pathlib import Path
 
 import altair as alt
@@ -229,6 +230,11 @@ st.set_page_config(
     page_icon=":memo:",
     layout="wide",
 )
+
+if "user_id" not in st.session_state:
+    st.session_state.user_id = str(uuid.uuid4())
+
+user_id = st.session_state.user_id
 
 inject_page_style()
 
@@ -889,9 +895,9 @@ def render_logic_practice(
                 st.markdown(st.session_state[feedback_key])
 
 
-def list_correction_history() -> list[dict[str, object]]:
+def list_correction_history(user_id: str) -> list[dict[str, object]]:
     """Read saved records for the dashboard trend chart."""
-    records_dir = BASE_DIR / "records"
+    records_dir = BASE_DIR / "records" / user_id
     if not records_dir.exists():
         return []
 
@@ -916,9 +922,9 @@ def list_correction_history() -> list[dict[str, object]]:
     return history
 
 
-def render_history() -> None:
+def render_history(user_id: str) -> None:
     """Render local score history and trend chart."""
-    history = list_correction_history()
+    history = list_correction_history(user_id)
     scored_history = [item for item in history if item["score"] is not None]
 
     st.subheader("History Trend")
@@ -1084,11 +1090,13 @@ with st.container():
                         essay=essay,
                         report=report,
                         word_count=word_count,
+                        user_id=user_id,
                     )
                     error_book_path = append_error_book(
                         task_type=task_type,
                         topic=topic,
                         report=report,
+                        user_id=user_id,
                     )
                     st.session_state.latest_report = report
                     st.session_state.latest_saved_path = saved_path
@@ -1147,4 +1155,4 @@ with st.container():
         )
 
 st.divider()
-render_history()
+render_history(user_id)

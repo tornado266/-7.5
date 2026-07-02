@@ -2,6 +2,7 @@
 
 import json
 import re
+import uuid
 from io import BytesIO
 from datetime import datetime
 from pathlib import Path
@@ -43,6 +44,17 @@ MUTED = colors.HexColor("#62777D")
 RULE = colors.HexColor("#CFE1E3")
 
 
+def get_user_records_dir(user_id: str | None = None) -> Path:
+    """Return a safe per-user records directory while preserving legacy callers."""
+    if user_id is None:
+        return RECORDS_DIR
+    try:
+        normalized_user_id = str(uuid.UUID(user_id))
+    except (ValueError, AttributeError, TypeError) as exc:
+        raise ValueError("user_id must be a valid UUID") from exc
+    return RECORDS_DIR / normalized_user_id
+
+
 def build_markdown_record(
     task_type: str,
     topic: str,
@@ -51,6 +63,7 @@ def build_markdown_record(
     word_count: int,
     created_at: datetime | None = None,
     overall_band: float | None = None,
+    user_id: str | None = None,
 ) -> str:
     """Build a complete downloadable record without writing it to disk."""
     created_at = created_at or datetime.now()
@@ -62,6 +75,7 @@ def build_markdown_record(
         - Word Count: {word_count}
         - Created At: {created_at.strftime("%Y-%m-%d %H:%M:%S")}
         - Overall Band: {overall_band if overall_band is not None else "N/A"}
+        - Anonymous User ID: {user_id if user_id is not None else "Legacy"}
 
         ## Essay Question
 
@@ -411,15 +425,17 @@ def save_markdown_record(
     report: str,
     word_count: int,
     parsed_result: dict[str, Any] | None = None,
+    user_id: str | None = None,
 ) -> Path:
     """Save one correction record as Markdown plus structured JSON metadata."""
-    RECORDS_DIR.mkdir(exist_ok=True)
+    records_dir = get_user_records_dir(user_id)
+    records_dir.mkdir(parents=True, exist_ok=True)
 
     created_at = datetime.now()
     timestamp = created_at.strftime("%Y%m%d_%H%M%S")
     file_stem = f"ielts_{task_type.lower().replace(' ', '_')}_{timestamp}"
-    file_path = RECORDS_DIR / f"{file_stem}.md"
-    json_path = RECORDS_DIR / f"{file_stem}.json"
+    file_path = records_dir / f"{file_stem}.md"
+    json_path = records_dir / f"{file_stem}.json"
 
     parsed_result = parsed_result or {}
     parsed_data = parsed_result.get("data", {}) if parsed_result.get("ok") else {}
@@ -443,6 +459,7 @@ def save_markdown_record(
         "task_type": task_type,
         "word_count": word_count,
         "markdown_file": file_path.name,
+        "user_id": user_id,
     }
 
     content = build_markdown_record(
@@ -453,6 +470,7 @@ def save_markdown_record(
         word_count=word_count,
         created_at=created_at,
         overall_band=overall_band,
+        user_id=user_id,
     )
 
     file_path.write_text(content, encoding="utf-8")
@@ -485,7 +503,7 @@ def _read_json_record(path: Path) -> dict[str, object] | None:
     markdown_file = str(data.get("markdown_file") or f"{path.stem}.md")
     return {
         "file": markdown_file,
-        "path": RECORDS_DIR / markdown_file,
+        "path": path.parent / markdown_file,
         "created_at": created_at,
         "task_type": str(data.get("task_type") or "Task 2"),
         "word_count": data.get("word_count"),
@@ -522,21 +540,22 @@ def _read_markdown_record(path: Path) -> dict[str, object] | None:
     }
 
 
-def list_correction_history() -> list[dict[str, object]]:
+def list_correction_history(user_id: str | None = None) -> list[dict[str, object]]:
     """Read saved correction records and return lightweight history data."""
-    if not RECORDS_DIR.exists():
+    records_dir = get_user_records_dir(user_id)
+    if not records_dir.exists():
         return []
 
     history: list[dict[str, object]] = []
     json_stems = set()
 
-    for path in sorted(RECORDS_DIR.glob("ielts_*.json")):
+    for path in sorted(records_dir.glob("ielts_*.json")):
         record = _read_json_record(path)
         if record:
             history.append(record)
             json_stems.add(path.stem)
 
-    for path in sorted(RECORDS_DIR.glob("ielts_*.md")):
+    for path in sorted(records_dir.glob("ielts_*.md")):
         if path.stem in json_stems:
             continue
         record = _read_markdown_record(path)
