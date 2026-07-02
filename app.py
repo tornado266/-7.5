@@ -28,19 +28,19 @@ BASE_DIR = Path(__file__).parent
 BACKGROUND_IMAGE = BASE_DIR / "assets" / "hawaii-background.png"
 SCORE_PATTERN = re.compile(r"(?:Likely Score|Overall Band|likely score)[^\d]*(\d(?:\.\d)?)")
 SAMPLE_TOPIC = (
-    "Some people believe that university students should only study their main "
-    "subjects, while others think they should also study other subjects. "
+    "Some people believe university students should only study their main subjects, "
+    "while others think they should also study other subjects. "
     "Discuss both views and give your own opinion."
 )
-SAMPLE_ESSAY = """Nowadays, university students need to study many courses. Some people think they should only learn their main subject, but other people think they should study other subjects too. This question has advantages on both sides. I think the main subject is more important, although students can choose some other courses.
+SAMPLE_ESSAY = """Nowadays, people have different opinions about whether university students should only study their major or also learn other subjects. Both ideas have some advantages, but I think there are more benefits if students focus mainly on their major.
 
-On the one hand, students can improve their professional ability when they only focus on the major. University study is difficult and there is not much time. For example, computer science students need to learn programming and mathematics. These courses take many time and students must practise them often. If they also study art, history and other subjects, they may become busy and cannot study their main courses well. Therefore, focusing on the major is good for their future job.
+On the one hand, studying only the main subject can help students learn better skills. University study is difficult and students already have a lot of work to do. For example, a medical student needs to spend a lot of time reading books and doing practice. If they also study other subjects, they may feel too busy and cannot understand their main subject well. Therefore, focusing on one subject can help students prepare for their future job.
 
-On the other hand, other subjects are also useful for students. People need different knowledge in modern society. For example, business knowledge can help an engineering student in future. Also, art and history can make university life more interesting. Students can meet different ideas and this is good for their thinking. However, these benefits are general, and some other courses may not help students to find a job.
+On the other hand, learning other subjects can also be useful. Students can get more knowledge and become more interested in different areas. For example, a business student can learn some computer skills, which may help them in the future. However, not all students have enough time or energy to study many subjects at the same time.
 
-In my opinion, universities should give most time to the major subject. Also, they should let students choose one or two other course. This can make a balance and students can get professional knowledge and other knowledge. If there are too many courses, students will feel pressure, so the number should not be too much. This plan is suitable for most students.
+In my opinion, students should mainly study their major because it is the most important part of university education. Other subjects can be optional, but they should not take too much time. This way, students can still focus on their main goal while learning some extra knowledge.
 
-In conclusion, only studying the main subject can help students prepare for their career, while other subjects give them more knowledge. I believe students should mainly learn their major and study a small number of other subjects."""
+In conclusion, both views have some reasons, but I believe focusing on the major is more important for university students."""
 
 
 def load_sample_essay() -> None:
